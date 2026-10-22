@@ -32,14 +32,16 @@ public partial class MainWindow : Window
         View.ViewChanged += (_, _) => UpdateZoomUi();
         _slideshow.Tick += (_, _) =>
         {
-            if (_folder.Advance()) _ = ShowCurrentAsync();
+            if (!_edited && _folder.Advance()) _ = ShowCurrentAsync();
         };
+        InitAnnotations();
         UpdateUi();
     }
 
     /// <summary>Opens a Picture file, or the first Picture in a folder.</summary>
     public void OpenPath(string path)
     {
+        if (!ConfirmDiscard()) return;
         if (Directory.Exists(path))
         {
             if (!_folder.OpenFolder(path))
@@ -72,6 +74,7 @@ public partial class MainWindow : Window
             var bitmap = await Task.Run(() => ImageLoader.Load(path));
             if (ticket != _loadTicket) return;
 
+            ResetEditing();
             _current = bitmap;
             View.SetImage(bitmap);
             EmptyText.Visibility = Visibility.Collapsed;
@@ -79,6 +82,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             if (ticket != _loadTicket) return;
+            ResetEditing();
             _current = null;
             View.SetImage(null);
             ShowMessage($"Can't open {Path.GetFileName(path)}\n{ex.Message}");
@@ -98,11 +102,17 @@ public partial class MainWindow : Window
 
     void Navigate(int delta)
     {
+        if (!ConfirmDiscard()) return;
         if (_folder.Move(delta)) _ = ShowCurrentAsync();
     }
 
     void NavigateTo(int index)
     {
+        if (!ConfirmDiscard())
+        {
+            SyncStrip(); // put the strip back on the picture that is still open
+            return;
+        }
         if (_folder.MoveTo(index)) _ = ShowCurrentAsync();
     }
 
@@ -117,8 +127,10 @@ public partial class MainWindow : Window
         NextButton.IsEnabled = _folder.HasNext;
         PrevOverlay.Visibility = _folder.HasPrevious ? Visibility.Visible : Visibility.Collapsed;
         NextOverlay.Visibility = _folder.HasNext ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var b in new[] { ZoomInButton, ZoomOutButton, FitButton, ActualButton, CopyButton })
+        foreach (var b in new[] { ZoomInButton, ZoomOutButton, FitButton, ActualButton, CopyButton, RotateLeftButton, RotateRightButton })
             b.IsEnabled = hasImage;
+        AnnotBar.IsEnabled = hasImage;
+        UndoButton.IsEnabled = _undo.Count > 0;
         RenameButton.IsEnabled = DeleteButton.IsEnabled = hasFile;
 
         if (_folder.Files.Count < 2) StopSlideshow();
@@ -127,7 +139,7 @@ public partial class MainWindow : Window
         if (_folder.Current is { } path)
         {
             string name = Path.GetFileName(path);
-            Title = $"{name} - Picture Viewer";
+            Title = $"{(_edited ? "• " : "")}{name} - Picture Viewer";
             NameText.Text = name;
             PositionText.Text = $"{_folder.Index + 1} / {_folder.Files.Count}";
             InfoText.Text = hasImage ? $"{_current!.PixelWidth} × {_current.PixelHeight}  ·  {FileSize(path)}" : "";
@@ -291,13 +303,15 @@ public partial class MainWindow : Window
         if (_current is null) return;
         try
         {
+            // What you see: annotations and View rotation included.
+            var picture = AnnotationRenderer.Flatten(_current, View.Layer.Items, View.QuarterTurns);
             var data = new DataObject();
-            data.SetImage(_current);
+            data.SetImage(picture);
 
             // The plain bitmap format has no transparency; PNG-aware apps (browsers, Office) use this one.
             var png = new MemoryStream();
             var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(_current));
+            encoder.Frames.Add(BitmapFrame.Create(picture));
             encoder.Save(png);
             data.SetData("PNG", png);
 
@@ -350,6 +364,7 @@ public partial class MainWindow : Window
     void DeleteCurrent()
     {
         if (_folder.Current is not { } path) return;
+        if (!ConfirmDiscard()) return;
 
         try
         {
@@ -404,7 +419,12 @@ public partial class MainWindow : Window
     void OnDeleteClick(object sender, RoutedEventArgs e) => DeleteCurrent();
     void OnRevealClick(object sender, RoutedEventArgs e) => RevealCurrent();
     void OnFullScreenClick(object sender, RoutedEventArgs e) => ToggleFullScreen();
+    void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e) => e.Cancel = !ConfirmDiscard();
     void OnClosed(object? sender, EventArgs e) => _slideshow.Stop();
+    void OnRotateLeftClick(object sender, RoutedEventArgs e) => View.RotateBy(-1);
+    void OnRotateRightClick(object sender, RoutedEventArgs e) => View.RotateBy(1);
+    void OnPasteClick(object sender, RoutedEventArgs e) => PasteFromClipboard();
+    void OnUndoClick(object sender, RoutedEventArgs e) => Undo();
 
     void OnDrop(object sender, DragEventArgs e)
     {
@@ -423,11 +443,21 @@ public partial class MainWindow : Window
             case Key.I when ctrl: SetInfoPanel(InfoPanel.Visibility != Visibility.Visible); break;
             case Key.T when ctrl: SetThumbnails(Strip.Visibility != Visibility.Visible); break;
             case Key.R when ctrl: RevealCurrent(); break;
+            case Key.V when ctrl: PasteFromClipboard(); break;
+            case Key.Z when ctrl: Undo(); break;
+            case Key.OemOpenBrackets when ctrl: View.RotateBy(-1); break;
+            case Key.OemCloseBrackets when ctrl: View.RotateBy(1); break;
             case Key.F2: RenameCurrent(); break;
-            case Key.Delete: DeleteCurrent(); break;
+            case Key.Delete:
+                // An annotation selected on the picture goes first; otherwise it's the file.
+                if (View.Layer.Selected != null) View.Layer.DeleteSelected();
+                else DeleteCurrent();
+                break;
             case Key.F11: ToggleFullScreen(); break;
             case Key.Escape:
                 if (_fullScreen) ToggleFullScreen();
+                else if (View.Layer.Tool != AnnotationTool.None) View.Layer.Tool = AnnotationTool.None;
+                else if (View.Layer.SelectedIndex != null) View.Layer.SelectedIndex = null;
                 else if (_slideshow.IsEnabled) StopSlideshow();
                 else e.Handled = false;
                 break;

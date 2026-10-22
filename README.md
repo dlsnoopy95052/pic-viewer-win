@@ -49,12 +49,29 @@ Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 | Move to Recycle Bin | Delete |
 | Show in Explorer | Ctrl+R |
 | Full screen | F11; Esc leaves |
+| Paste picture (as a layer) | Ctrl+V |
+| Undo | Ctrl+Z |
+| Rotate view left / right | Ctrl+[ / Ctrl+] |
+| Delete the selected annotation (otherwise the file) | Delete |
+| Turn off tool / deselect | Esc |
+
+## Annotate
+
+Annotations stay editable until the picture is flattened (flattening arrives with Save in milestone 4).
+
+- Tools: line, arrow, rectangle, circle, freehand pen, text, and **Mosaic** to pixelate sensitive areas
+- Click to select, drag to move, drag end points to resize, change color / width of the selection, Delete to remove
+- Drag the round knob to rotate rectangles, circles, text and pasted pictures (Shift = 15° steps)
+- Double-click text to edit (multi-line); drag the right-edge handle to wrap text (double-click it to unwrap); pick font, bold, italic and background color
+- Paste (Ctrl+V) a picture from the clipboard as a layer you can move, resize and rotate; with nothing open it opens as a new picture
+- Rotating the view only changes how the picture is displayed; copy includes annotations and the rotation
+- Undo, and a prompt before unsaved annotations are discarded
 
 ## Milestones
 
 1. ✅ Open a Picture, browse the folder, fit / zoom / pan
 2. ✅ Info panel, thumbnail strip, slideshow, rename, Recycle Bin, copy, full screen
-3. Annotations, including paste (a Pasted layer) and View rotation
+3. ✅ Annotations, including paste (a Pasted layer) and View rotation
 4. Flatten and Edit
 5. Capture with global hot key, tray icon, Open at Login
 6. Printing, extra formats, installer (MSIX or Inno Setup)

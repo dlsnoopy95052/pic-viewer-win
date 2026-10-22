@@ -70,6 +70,18 @@
             </Setter>
         </Style>
 
+        <!-- Vector tool icons that follow the button's foreground -->
+        <Style x:Key="IconStroke" TargetType="Path">
+            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+            <Setter Property="StrokeThickness" Value="1.7"/>
+            <Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/>
+            <Setter Property="StrokeEndLineCap" Value="Round"/>
+        </Style>
+        <Style x:Key="IconFill" TargetType="Path">
+            <Setter Property="Fill" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+        </Style>
+
         <!-- Thumbnail strip cell; the selected one gets an accent border -->
         <Style x:Key="ThumbItemStyle" TargetType="ListBoxItem">
             <Setter Property="Focusable" Value="False"/>
