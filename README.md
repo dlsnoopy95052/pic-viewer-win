@@ -21,7 +21,7 @@ Requires the .NET 10 SDK (`winget install Microsoft.DotNet.SDK.10`).
 
 ```powershell
 dotnet run --project src/PictureViewer          # run from source
-.uild-installer.ps1                           # artifacts\PictureViewer-Setup-<version>.exe
+.\build-installer.ps1                           # artifacts\PictureViewer-Setup-<version>.exe
 ```
 
 The installer script publishes a self-contained win-x64 build and packs it with Inno Setup (`winget install JRSoftware.InnoSetup --scope user`).
