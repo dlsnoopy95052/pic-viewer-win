@@ -12,6 +12,8 @@
     <AssemblyName>PictureViewer</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.0</Version>
+    <NoWarn>$(NoWarn);WFO0003</NoWarn> <!-- DPI is set in the manifest for WPF; WinForms is only used for the tray icon -->
+
   </PropertyGroup>
 
   <ItemGroup>
