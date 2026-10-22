@@ -7,14 +7,14 @@ public static class ImageFormats
     static readonly string[] Native =
     [
         ".jpg", ".jpeg", ".jpe", ".jfif", ".png", ".gif", ".bmp", ".dib", ".tif", ".tiff",
-        ".ico", ".webp", ".heic", ".heif", ".avif", ".jxr", ".wdp",
+        ".ico", ".webp", ".heic", ".heif", ".avif", ".jxr", ".wdp", ".pdf",
     ];
 
     /// <summary>Formats only Magick.NET decodes.</summary>
     static readonly string[] MagickOnly =
     [
         ".psd", ".svg", ".tga", ".jxl", ".exr", ".hdr", ".pcx", ".xcf",
-        ".dng", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".orf", ".rw2", ".raf", ".pef", ".srw", ".raw",
+        ".dng", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".orf", ".rw2", ".raf", ".pef", ".srw",
     ];
 
     static readonly HashSet<string> All =
@@ -23,6 +23,9 @@ public static class ImageFormats
     static readonly HashSet<string> MagickOnlySet = new(MagickOnly, StringComparer.OrdinalIgnoreCase);
 
     public static bool IsSupported(string path) => All.Contains(Path.GetExtension(path));
+
+    /// <summary>PDF pages are drawn by Windows itself (first page only).</summary>
+    public static bool IsPdf(string path) => string.Equals(Path.GetExtension(path), ".pdf", StringComparison.OrdinalIgnoreCase);
 
     public static bool NeedsMagick(string path) => MagickOnlySet.Contains(Path.GetExtension(path));
 

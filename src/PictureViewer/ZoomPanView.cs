@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace PictureViewer;
 
@@ -26,6 +27,9 @@ public sealed class ZoomPanView : Border
     int _turns;             // clockwise quarter turns of the View rotation
     Point? _dragStart;
     Point _dragOrigin;
+    DispatcherTimer? _animationTimer;
+    GifFrames? _animation;
+    int _animationIndex;
 
     public event EventHandler? ViewChanged;
 
@@ -56,6 +60,7 @@ public sealed class ZoomPanView : Border
     /// <summary>Shows a new Picture; zoom, pan and View rotation start over.</summary>
     public void SetImage(BitmapSource? source)
     {
+        StopAnimation();
         _source = source;
         _image.Source = source;
         _surface.Visibility = source is null ? Visibility.Collapsed : Visibility.Visible;
@@ -81,10 +86,44 @@ public sealed class ZoomPanView : Border
             SetImage(source);
             return;
         }
+        StopAnimation();
         _source = source;
         _image.Source = source;
         Layer.Base = source;
         Layout();
+    }
+
+    // ---- Animated GIF ----
+
+    public bool IsAnimating => _animation != null;
+
+    /// <summary>Plays the frames over the Picture (which must be the first frame). Editing the Picture stops it.</summary>
+    public void PlayAnimation(GifFrames animation)
+    {
+        StopAnimation();
+        _animation = animation;
+        _animationIndex = 0;
+        _animationTimer ??= new DispatcherTimer();
+        _animationTimer.Tick -= OnAnimationTick;
+        _animationTimer.Tick += OnAnimationTick;
+        _animationTimer.Interval = animation.Delays[0];
+        _animationTimer.Start();
+    }
+
+    public void StopAnimation()
+    {
+        _animationTimer?.Stop();
+        if (_animation == null) return;
+        _animation = null;
+        if (_source != null) _image.Source = _source; // back to the first frame, which is what edits work on
+    }
+
+    void OnAnimationTick(object? sender, EventArgs e)
+    {
+        if (_animation is not { } animation) return;
+        _animationIndex = (_animationIndex + 1) % animation.Frames.Count;
+        _image.Source = animation.Frames[_animationIndex];
+        _animationTimer!.Interval = animation.Delays[_animationIndex];
     }
 
     public void FitToWindow()

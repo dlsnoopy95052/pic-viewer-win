@@ -10,6 +10,12 @@ namespace PictureViewer;
 /// </summary>
 public partial class App : Application
 {
+    /// <summary>`PictureViewer.exe --quit` asks the running copy to exit (used by the installer).</summary>
+    public const string QuitFlag = "--quit";
+
+    /// <summary>`PictureViewer.exe --remove-autostart` removes the Open at Login entry and exits (used by the uninstaller).</summary>
+    public const string RemoveAutoStartFlag = "--remove-autostart";
+
     readonly Settings _settings = Settings.Load();
 
     MainWindow _window = null!;
@@ -22,11 +28,26 @@ public partial class App : Application
     {
         string? path = e.Args.FirstOrDefault(a => !a.StartsWith("--"));
         bool background = e.Args.Contains(AutoStart.BackgroundFlag);
+        bool quit = e.Args.Contains(QuitFlag);
+
+        if (e.Args.Contains(RemoveAutoStartFlag))
+        {
+            // Run by the uninstaller: "Open at Login" may have been switched on from the tray menu, which it doesn't know about.
+            try { AutoStart.Set(false); }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { }
+            Shutdown();
+            return;
+        }
 
         if (!SingleInstance.TryBecomePrimary())
         {
-            SingleInstance.SendToPrimary(path ?? "");
+            SingleInstance.SendToPrimary(quit ? QuitFlag : path ?? "");
             Shutdown();
+            return;
+        }
+        if (quit)
+        {
+            Shutdown(); // nothing running to quit
             return;
         }
         SingleInstance.StartServer(message => Dispatcher.Invoke(() => HandleRemote(message)));
@@ -49,6 +70,11 @@ public partial class App : Application
 
     void HandleRemote(string path)
     {
+        if (path == QuitFlag)
+        {
+            Quit(); // the installer asking us to make room for an update or uninstall
+            return;
+        }
         ShowMainWindow();
         if (path.Length > 0) _window.OpenPath(path);
     }

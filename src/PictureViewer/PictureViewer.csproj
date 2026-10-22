@@ -13,6 +13,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>1.0.0</Version>
     <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages> <!-- the UI is English; skip the framework's translations -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn> <!-- DPI is set in the manifest for WPF; WinForms is only used for the tray icon -->
 
   </PropertyGroup>

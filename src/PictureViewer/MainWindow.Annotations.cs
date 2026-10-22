@@ -182,6 +182,7 @@ public partial class MainWindow
     void PushUndo(bool style = false)
     {
         if (_current is null) return;
+        View.StopAnimation(); // edits work on the first frame
         if (style && _lastUndoWasStyle) return;
         _lastUndoWasStyle = style;
         _undo.Add(new Snapshot(_current, [.. View.Layer.Items.Select(a => a.Clone())]));

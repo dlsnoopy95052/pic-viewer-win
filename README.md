@@ -2,32 +2,44 @@
 
 Windows 11 port of the macOS [Picture Viewer](../pic-viewer): a small native picture viewer with light annotation and editing. Written in C# / WPF on .NET 10.
 
-## Build and run
+## Install
+
+Download `PictureViewer-Setup-<version>.exe` (built below) and run it. It installs for the current user only (no administrator rights), needs no separate .NET install, and can start in the tray at sign-in. Pictures also appear in Explorer's **Open with** list. Uninstalling removes everything, including the Open at Login entry.
+
+## Features
+
+- Opens JPEG, PNG, GIF (animated GIFs play), TIFF, BMP, ICO, WebP, HEIC, AVIF, JXR, PSD, SVG, TGA, JPEG XL, EXR, HDR, PCX, XCF, PDF (first page) and camera RAW (DNG, CR2, CR3, NEF, NRW, ARW, ORF, RW2, RAF, PEF, SRW). WebP, HEIC and AVIF come from Windows when its codec is installed, otherwise from Magick.NET
+- Browse every picture in the same folder; drag and drop; fit / actual size / zoom / pan
+- Info panel with file and EXIF details, thumbnail strip, slideshow, rename, Recycle Bin, copy, show in Explorer, full screen
+- Annotate, edit, save, capture, print: see the sections below
+- Printing has a live preview, printer / paper / orientation choice, and four scaling modes (shrink to fit, fit to page, actual size, fill page) with optional centering
+
+## Build
 
 Requires the .NET 10 SDK (`winget install Microsoft.DotNet.SDK.10`).
 
 ```powershell
-dotnet run --project src/PictureViewer
-dotnet publish src/PictureViewer -c Release -r win-x64 --self-contained false
+dotnet run --project src/PictureViewer          # run from source
+.uild-installer.ps1                           # artifacts\PictureViewer-Setup-<version>.exe
 ```
 
-## Port plan
+The installer script publishes a self-contained win-x64 build and packs it with Inno Setup (`winget install JRSoftware.InnoSetup --scope user`).
 
-Features carried over from the macOS app, with the Windows technology used for each:
+## Where macOS parts went
 
 | Feature | macOS | Windows |
 |---|---|---|
 | Window, toolbar, zoom / pan | AppKit | WPF |
-| Image decoding and metadata | ImageIO | WIC (built in), Magick.NET for RAW / PSD / AVIF / HEIC |
-| PDF | PDFKit | Windows.Data.Pdf |
+| Image decoding and metadata | ImageIO | WIC (built in), Magick.NET for the rest |
+| PDF | PDFKit | `Windows.Data.Pdf` |
 | Global capture hot key | Carbon `RegisterEventHotKey` | Win32 `RegisterHotKey` |
-| Area capture | `screencapture` | Selection overlay + `Graphics.CopyFromScreen` |
+| Area capture | `screencapture` | Frozen-screen selection overlay (GDI `BitBlt`) |
 | Menu bar presence | `NSStatusItem` | System tray `NotifyIcon` |
 | Open at Login | `SMAppService` | `HKCU\...\Run` registry value |
-| Edit (crop, flip, brightness, contrast, saturation) | CoreImage | Pixel shaders / WriteableBitmap |
-| Annotations (line, arrow, rectangle, circle, pen, text, Mosaic, Pasted layer) | AppKit drawing | WPF `Adorner` / `DrawingVisual` layer |
-| Clipboard | `NSPasteboard` | `System.Windows.Clipboard` |
-| Printing with preview | `NSPrintPanel` | `PrintDialog` + `DocumentViewer` |
+| Edit (crop, flip, brightness, contrast, saturation) | CoreImage | `WriteableBitmap` pixel maths |
+| Annotations | AppKit drawing | WPF layer in Picture-pixel space inside the zoom / pan transform |
+| Clipboard | `NSPasteboard` | `System.Windows.Clipboard` (bitmap + PNG) |
+| Printing with preview | `NSPrintPanel` | Own preview window + `PrintDialog` |
 | Trash | Finder trash | Recycle Bin (`Microsoft.VisualBasic.FileIO`) |
 
 Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
@@ -96,4 +108,12 @@ Annotations stay editable until the picture is flattened (by an edit below, or w
 3. ✅ Annotations, including paste (a Pasted layer) and View rotation
 4. ✅ Flatten and Edit
 5. ✅ Capture with global hot key, tray icon, Open at Login
-6. Printing, extra formats, installer (MSIX or Inno Setup)
+6. ✅ Printing, PDF, animated GIF, installer (Inno Setup)
+
+## Known limits
+
+- PDF shows the first page only (as on macOS)
+- Camera RAW decoding comes from Magick.NET's LibRaw and hasn't been tried against real RAW files yet
+- The capture hot key is fixed at Ctrl+Alt+4
+- Saving re-encodes, so EXIF data is dropped; JPEG is written at quality 92
+- Printing was verified up to the document sent to the printer; the Windows print dialog and physical printers haven't been exercised in automated tests

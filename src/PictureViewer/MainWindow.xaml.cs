@@ -72,12 +72,13 @@ public partial class MainWindow : Window
 
         try
         {
-            var bitmap = await Task.Run(() => ImageLoader.Load(path));
+            var (bitmap, animation) = await Task.Run(() => ImageLoader.LoadWithAnimation(path));
             if (ticket != _loadTicket) return;
 
             ResetEditing();
             _current = bitmap;
             View.SetImage(bitmap);
+            if (animation != null) View.PlayAnimation(animation);
             EmptyText.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
@@ -128,7 +129,7 @@ public partial class MainWindow : Window
         NextButton.IsEnabled = _folder.HasNext;
         PrevOverlay.Visibility = _folder.HasPrevious ? Visibility.Visible : Visibility.Collapsed;
         NextOverlay.Visibility = _folder.HasNext ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var b in new[] { ZoomInButton, ZoomOutButton, FitButton, ActualButton, CopyButton, RotateLeftButton, RotateRightButton })
+        foreach (var b in new[] { ZoomInButton, ZoomOutButton, FitButton, ActualButton, CopyButton, PrintButton, RotateLeftButton, RotateRightButton })
             b.IsEnabled = hasImage;
         AnnotBar.IsEnabled = hasImage;
         UndoButton.IsEnabled = _undo.Count > 0;
@@ -333,6 +334,14 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>Prints what is on screen: annotations and View rotation included.</summary>
+    void PrintCurrent()
+    {
+        if (_folder.Current is not { } path || CurrentPicture() is not { } picture) return;
+        View.Layer.CropMode = false;
+        new PrintWindow(picture, Path.GetFileName(path)) { Owner = this }.ShowDialog();
+    }
+
     void RenameCurrent()
     {
         if (_folder.Current is not { } path) return;
@@ -515,6 +524,7 @@ public partial class MainWindow : Window
     void OnClosed(object? sender, EventArgs e) => _slideshow.Stop();
     void OnRotateLeftClick(object sender, RoutedEventArgs e) => View.RotateBy(-1);
     void OnRotateRightClick(object sender, RoutedEventArgs e) => View.RotateBy(1);
+    void OnPrintClick(object sender, RoutedEventArgs e) => PrintCurrent();
     void OnPasteClick(object sender, RoutedEventArgs e) => PasteFromClipboard();
     void OnUndoClick(object sender, RoutedEventArgs e) => Undo();
 
@@ -538,6 +548,7 @@ public partial class MainWindow : Window
             case Key.S when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift): SaveCopy(); break;
             case Key.S when ctrl: SaveInPlace(); break;
             case Key.K when ctrl: CropAction(); break;
+            case Key.P when ctrl: PrintCurrent(); break;
             case Key.V when ctrl: PasteFromClipboard(); break;
             case Key.Z when ctrl: Undo(); break;
             case Key.OemOpenBrackets when ctrl: View.RotateBy(-1); break;
