@@ -12,6 +12,12 @@ public sealed class FolderBrowser
     public bool HasPrevious => Index > 0;
     public bool HasNext => Index >= 0 && Index < Files.Count - 1;
 
+    public void Clear()
+    {
+        Files = [];
+        Index = -1;
+    }
+
     /// <summary>Loads the folder containing <paramref name="file"/> and positions on it.</summary>
     public void OpenFile(string file)
     {

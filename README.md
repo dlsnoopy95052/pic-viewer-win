@@ -32,6 +32,17 @@ Features carried over from the macOS app, with the Windows technology used for e
 
 Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 
+## Tray and Capture
+
+Picture Viewer lives in the system tray. Closing the window only hides it; use **Quit** in the tray menu to exit.
+
+- Capture a screen area with the global hot key **Ctrl+Alt+4** (works while another app is in front; no permission prompt). Drag the area, Esc or right-click cancels. Every screen is frozen first, so you get exactly what you saw
+- The capture is copied to the clipboard (toggle in the tray menu). If a picture is already open it stays put and you can paste the capture onto it with Ctrl+V; otherwise the capture opens to annotate and edit
+- Tray menu: Capture Screen Area, Show Picture Viewer, Open…, Copy Captures to Clipboard, **Open at Login**, About, Quit
+- Open at Login starts straight into the tray (no window). Starting the app by hand shows the window
+- Only one copy runs; opening a picture while it's running hands the file to the running one
+- If Ctrl+Alt+4 belongs to another program, you get a notice and can still capture from the tray menu
+
 ## Edit
 
 Editing changes the picture's pixels, so it flattens any annotations and the view rotation first.
@@ -84,5 +95,5 @@ Annotations stay editable until the picture is flattened (by an edit below, or w
 2. ✅ Info panel, thumbnail strip, slideshow, rename, Recycle Bin, copy, full screen
 3. ✅ Annotations, including paste (a Pasted layer) and View rotation
 4. ✅ Flatten and Edit
-5. Capture with global hot key, tray icon, Open at Login
+5. ✅ Capture with global hot key, tray icon, Open at Login
 6. Printing, extra formats, installer (MSIX or Inno Setup)

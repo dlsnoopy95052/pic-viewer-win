@@ -292,6 +292,8 @@ public partial class MainWindow : Window
 
     // ---- File actions ----
 
+    public void ShowOpenDialog() => OpenDialog();
+
     void OpenDialog()
     {
         var dlg = new OpenFileDialog { Filter = ImageFormats.DialogFilter, Title = "Open picture" };
@@ -302,10 +304,15 @@ public partial class MainWindow : Window
     void CopyImage()
     {
         if (_current is null) return;
+        // What you see: annotations and View rotation included.
+        PutOnClipboard(AnnotationRenderer.Flatten(_current, View.Layer.Items, View.QuarterTurns));
+    }
+
+    /// <summary>Puts a picture on the clipboard as a bitmap plus PNG (which keeps transparency). False if the clipboard was busy.</summary>
+    bool PutOnClipboard(BitmapSource picture)
+    {
         try
         {
-            // What you see: annotations and View rotation included.
-            var picture = AnnotationRenderer.Flatten(_current, View.Layer.Items, View.QuarterTurns);
             var data = new DataObject();
             data.SetImage(picture);
 
@@ -317,10 +324,12 @@ public partial class MainWindow : Window
             data.SetData("PNG", png);
 
             Clipboard.SetDataObject(data, copy: true); // copy: true keeps it after the app exits
+            return true;
         }
         catch (COMException)
         {
             ShowError("The clipboard is in use by another program. Try again.");
+            return false;
         }
     }
 
@@ -420,7 +429,89 @@ public partial class MainWindow : Window
     void OnDeleteClick(object sender, RoutedEventArgs e) => DeleteCurrent();
     void OnRevealClick(object sender, RoutedEventArgs e) => RevealCurrent();
     void OnFullScreenClick(object sender, RoutedEventArgs e) => ToggleFullScreen();
-    void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e) => e.Cancel = !ConfirmDiscard();
+    /// <summary>Set by the tray's Quit; otherwise closing the window only hides it (the tray keeps running).</summary>
+    public bool Quitting { get; set; }
+
+    public event EventHandler? HiddenToTray;
+
+    void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (!ConfirmDiscard())
+        {
+            e.Cancel = true;
+            Quitting = false;
+            return;
+        }
+        if (Quitting) return;
+
+        e.Cancel = true;
+        ClearPicture();
+        Hide();
+        HiddenToTray?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Back to the empty state, so a window that comes back later doesn't hold on to the old picture.</summary>
+    void ClearPicture()
+    {
+        StopSlideshow();
+        _loadTicket++; // a load still in flight must not bring the picture back
+        _folder.Clear();
+        ResetEditing();
+        _current = null;
+        View.SetImage(null);
+        RebuildStrip();
+        InfoPanelText.Text = "";
+        ShowMessage("Drop a picture or folder here, or press Ctrl+O");
+        UpdateUi();
+    }
+
+    public void StopSlideshowForCapture() => StopSlideshow();
+
+    /// <summary>
+    /// A finished Capture. With a Picture already open it stays put (the Capture is on the clipboard to paste onto it);
+    /// otherwise the Capture opens like any other Picture.
+    /// </summary>
+    public void HandleCapture(BitmapSource capture, bool copyToClipboard)
+    {
+        bool hadPicture = _folder.Current != null;
+        if (copyToClipboard && PutOnClipboard(capture) && hadPicture)
+        {
+            ShowToast("Capture copied — press Ctrl+V to paste");
+            return;
+        }
+
+        try
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "PictureViewerCaptures");
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, $"Capture {DateTime.Now:yyyy-MM-dd HH.mm.ss}.png");
+            ImageEdit.Save(capture, path);
+            OpenPath(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    // ---- Toast ----
+
+    int _toastTicket;
+
+    /// <summary>A brief message over the picture that goes away by itself.</summary>
+    void ShowToast(string text)
+    {
+        ToastText.Text = text;
+        Toast.Visibility = Visibility.Visible;
+        int ticket = ++_toastTicket;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            if (ticket == _toastTicket) Toast.Visibility = Visibility.Collapsed;
+        };
+        timer.Start();
+    }
     void OnClosed(object? sender, EventArgs e) => _slideshow.Stop();
     void OnRotateLeftClick(object sender, RoutedEventArgs e) => View.RotateBy(-1);
     void OnRotateRightClick(object sender, RoutedEventArgs e) => View.RotateBy(1);
