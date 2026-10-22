@@ -70,6 +70,23 @@ public sealed class ZoomPanView : Border
         Layout();
     }
 
+    /// <summary>
+    /// Swaps the pixels. With <paramref name="keepView"/> (and the same size) zoom, pan and View rotation stay as they are;
+    /// otherwise it's treated as a new Picture.
+    /// </summary>
+    public void ReplaceImage(BitmapSource source, bool keepView)
+    {
+        if (!keepView || _source is null || source.PixelWidth != _source.PixelWidth || source.PixelHeight != _source.PixelHeight)
+        {
+            SetImage(source);
+            return;
+        }
+        _source = source;
+        _image.Source = source;
+        Layer.Base = source;
+        Layout();
+    }
+
     public void FitToWindow()
     {
         _fit = true;

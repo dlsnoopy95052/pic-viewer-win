@@ -35,6 +35,7 @@ public partial class MainWindow : Window
             if (!_edited && _folder.Advance()) _ = ShowCurrentAsync();
         };
         InitAnnotations();
+        InitEditing();
         UpdateUi();
     }
 
@@ -443,6 +444,9 @@ public partial class MainWindow : Window
             case Key.I when ctrl: SetInfoPanel(InfoPanel.Visibility != Visibility.Visible); break;
             case Key.T when ctrl: SetThumbnails(Strip.Visibility != Visibility.Visible); break;
             case Key.R when ctrl: RevealCurrent(); break;
+            case Key.S when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift): SaveCopy(); break;
+            case Key.S when ctrl: SaveInPlace(); break;
+            case Key.K when ctrl: CropAction(); break;
             case Key.V when ctrl: PasteFromClipboard(); break;
             case Key.Z when ctrl: Undo(); break;
             case Key.OemOpenBrackets when ctrl: View.RotateBy(-1); break;
@@ -456,6 +460,7 @@ public partial class MainWindow : Window
             case Key.F11: ToggleFullScreen(); break;
             case Key.Escape:
                 if (_fullScreen) ToggleFullScreen();
+                else if (View.Layer.CropMode) View.Layer.CropMode = false;
                 else if (View.Layer.Tool != AnnotationTool.None) View.Layer.Tool = AnnotationTool.None;
                 else if (View.Layer.SelectedIndex != null) View.Layer.SelectedIndex = null;
                 else if (_slideshow.IsEnabled) StopSlideshow();

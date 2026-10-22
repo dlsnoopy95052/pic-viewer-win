@@ -24,6 +24,9 @@ public sealed class AnnotationLayer : FrameworkElement
     int _handle;
     bool _dragStarted;
     bool _active;           // a draw or drag gesture is in progress
+    bool _cropMode;
+    Rect? _cropRect;
+    Point? _cropStart;
 
     public List<Annotation> Items { get; } = [];
 
@@ -40,6 +43,7 @@ public sealed class AnnotationLayer : FrameworkElement
 
     public event EventHandler? ToolChanged;
     public event EventHandler? SelectionChanged;
+    public event EventHandler? CropModeChanged;
 
     /// <summary>Raised once, right before an interactive change mutates the items (push undo here).</summary>
     public event EventHandler? BeginChange;
@@ -69,11 +73,50 @@ public sealed class AnnotationLayer : FrameworkElement
         {
             if (_tool == value) return;
             _tool = value;
-            if (value != AnnotationTool.None) SelectedIndex = null;
+            if (value != AnnotationTool.None)
+            {
+                SelectedIndex = null;
+                CropMode = false;
+            }
             _drawPoints = [];
             Cursor = value == AnnotationTool.None ? null : Cursors.Cross;
             InvalidateVisual();
             ToolChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>While on, dragging selects the area to keep instead of drawing or selecting annotations.</summary>
+    public bool CropMode
+    {
+        get => _cropMode;
+        set
+        {
+            if (_cropMode == value) return;
+            _cropMode = value;
+            _cropRect = null;
+            _cropStart = null;
+            if (value)
+            {
+                Tool = AnnotationTool.None;
+                SelectedIndex = null;
+            }
+            Cursor = value ? Cursors.Cross : (_tool == AnnotationTool.None ? null : Cursors.Cross);
+            InvalidateVisual();
+            CropModeChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>The area chosen in crop mode, in whole Picture pixels; null until something usable is selected.</summary>
+    public Int32Rect? CropPixelRect
+    {
+        get
+        {
+            if (_cropRect is not { } r || _base is null) return null;
+            int x = (int)Math.Floor(r.X), y = (int)Math.Floor(r.Y);
+            // Round outwards so the selection never loses its edge pixels.
+            int w = Math.Min(_base.PixelWidth, (int)Math.Ceiling(r.Right)) - x;
+            int h = Math.Min(_base.PixelHeight, (int)Math.Ceiling(r.Bottom)) - y;
+            return w >= 2 && h >= 2 ? new Int32Rect(x, y, w, h) : null;
         }
     }
 
@@ -218,6 +261,15 @@ public sealed class AnnotationLayer : FrameworkElement
     {
         if (_base is null) return false;
 
+        if (_cropMode)
+        {
+            _cropStart = p;
+            _cropRect = null;
+            _active = true;
+            InvalidateVisual();
+            return true;
+        }
+
         if (_tool != AnnotationTool.None)
         {
             if (_tool == AnnotationTool.Text)
@@ -282,6 +334,13 @@ public sealed class AnnotationLayer : FrameworkElement
     {
         if (!_active || _base is null) return false;
 
+        if (_cropStart is { } start)
+        {
+            _cropRect = Rect.Intersect(new Rect(start, p), new Rect(0, 0, _base.PixelWidth, _base.PixelHeight));
+            InvalidateVisual();
+            return true;
+        }
+
         if (_drawPoints.Count > 0)
         {
             if (_tool == AnnotationTool.Pen) _drawPoints.Add(p);
@@ -335,6 +394,7 @@ public sealed class AnnotationLayer : FrameworkElement
         _active = false;
         _drag = Drag.None;
         _dragStarted = false;
+        _cropStart = null;
 
         if (_drawPoints.Count >= 2 && _tool != AnnotationTool.None)
         {
@@ -393,6 +453,21 @@ public sealed class AnnotationLayer : FrameworkElement
             AnnotationRenderer.Draw(dc, NewShape(_drawPoints), _base);
 
         if (Selected is { } selected) DrawSelection(dc, selected);
+        if (_cropMode) DrawCrop(dc, bounds);
+    }
+
+    void DrawCrop(DrawingContext dc, Rect bounds)
+    {
+        Geometry dimmed = new RectangleGeometry(bounds);
+        if (_cropRect is { } keep)
+            dimmed = new CombinedGeometry(GeometryCombineMode.Exclude, dimmed, new RectangleGeometry(keep));
+        dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(0x80, 0, 0, 0)), null, dimmed);
+
+        if (_cropRect is { } r)
+        {
+            double k = Math.Max(ViewScale, 0.0001);
+            dc.DrawRectangle(null, new Pen(Brushes.White, 1 / k) { DashStyle = new DashStyle([5, 3], 0) }, r);
+        }
     }
 
     void DrawSelection(DrawingContext dc, Annotation a)

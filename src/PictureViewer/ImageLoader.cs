@@ -109,6 +109,7 @@ public static class ImageLoader
         bitmap.BeginInit();
         bitmap.UriSource = new Uri(path);
         bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache; // a file we just saved must not show its old thumbnail
         if (width >= height) bitmap.DecodePixelWidth = Math.Min(max, width);
         else bitmap.DecodePixelHeight = Math.Min(max, height);
         bitmap.EndInit();

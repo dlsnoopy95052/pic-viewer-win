@@ -32,6 +32,15 @@ Features carried over from the macOS app, with the Windows technology used for e
 
 Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 
+## Edit
+
+Editing changes the picture's pixels, so it flattens any annotations and the view rotation first.
+
+- Crop (drag the area, click Crop again to apply; Esc cancels), flip horizontally / vertically
+- Brightness / contrast / saturation with live preview; Cancel by closing the popup
+- Undo for every step, including edits that change the pixels
+- Save overwrites after a confirmation (JPEG, PNG, TIFF); anything else, and pasted pictures, go through Save a Copy. JPEG is saved at quality 92 on a white background, and re-saving drops EXIF data
+
 ## Keyboard shortcuts
 
 | Action | Keys |
@@ -53,11 +62,13 @@ Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 | Undo | Ctrl+Z |
 | Rotate view left / right | Ctrl+[ / Ctrl+] |
 | Delete the selected annotation (otherwise the file) | Delete |
+| Crop | Ctrl+K |
+| Save / Save a copy | Ctrl+S / Ctrl+Shift+S |
 | Turn off tool / deselect | Esc |
 
 ## Annotate
 
-Annotations stay editable until the picture is flattened (flattening arrives with Save in milestone 4).
+Annotations stay editable until the picture is flattened (by an edit below, or when saving).
 
 - Tools: line, arrow, rectangle, circle, freehand pen, text, and **Mosaic** to pixelate sensitive areas
 - Click to select, drag to move, drag end points to resize, change color / width of the selection, Delete to remove
@@ -72,6 +83,6 @@ Annotations stay editable until the picture is flattened (flattening arrives wit
 1. ✅ Open a Picture, browse the folder, fit / zoom / pan
 2. ✅ Info panel, thumbnail strip, slideshow, rename, Recycle Bin, copy, full screen
 3. ✅ Annotations, including paste (a Pasted layer) and View rotation
-4. Flatten and Edit
+4. ✅ Flatten and Edit
 5. Capture with global hot key, tray icon, Open at Login
 6. Printing, extra formats, installer (MSIX or Inno Setup)

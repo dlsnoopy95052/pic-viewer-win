@@ -198,6 +198,15 @@ public partial class MainWindow
         var previous = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
         _lastUndoWasStyle = false;
+        View.Layer.CropMode = false;
+
+        if (previous.Image is { } image && !ReferenceEquals(image, _current))
+        {
+            bool sameSize = _current != null && image.PixelWidth == _current.PixelWidth && image.PixelHeight == _current.PixelHeight;
+            _current = image;
+            View.ReplaceImage(image, keepView: sameSize);
+            RefreshInfoPanel();
+        }
         View.Layer.ReplaceItems(previous.Items.Select(a => a.Clone()));
         SetEdited(_undo.Count > 0);
     }
@@ -308,7 +317,7 @@ public partial class MainWindow
     {
         try
         {
-            string dir = Path.Combine(Path.GetTempPath(), "PictureViewerPastes");
+            string dir = Path.Combine(Path.GetTempPath(), PasteFolderName);
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, $"Pasted {DateTime.Now:yyyy-MM-dd HH.mm.ss}.png");
 
