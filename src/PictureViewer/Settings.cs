@@ -8,6 +8,21 @@ public sealed class Settings
     /// <summary>Put every Capture on the clipboard (so it can be pasted onto an open Picture).</summary>
     public bool CopyCaptures { get; set; } = true;
 
+    /// <summary>The global capture hot key (modifier flags and virtual key; see <see cref="HotKeySpec"/>).</summary>
+    public uint HotKeyModifiers { get; set; } = HotKeySpec.Default.Modifiers;
+    public uint HotKeyVirtualKey { get; set; } = HotKeySpec.Default.VirtualKey;
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public HotKeySpec HotKey
+    {
+        get => new(HotKeyModifiers, HotKeyVirtualKey);
+        set
+        {
+            HotKeyModifiers = value.Modifiers;
+            HotKeyVirtualKey = value.VirtualKey;
+        }
+    }
+
     static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PictureViewer", "settings.json");
 

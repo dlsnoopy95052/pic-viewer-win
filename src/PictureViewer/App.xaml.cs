@@ -21,7 +21,7 @@ public partial class App : Application
     MainWindow _window = null!;
     Forms.NotifyIcon? _tray;
     GlobalHotKey? _hotKey;
-    Forms.ToolStripMenuItem? _copyItem, _loginItem;
+    Forms.ToolStripMenuItem? _captureItem, _copyItem, _loginItem;
     bool _toldAboutTray;
 
     void OnStartup(object sender, StartupEventArgs e)
@@ -121,14 +121,58 @@ public partial class App : Application
         _window.HandleCapture(capture, _settings.CopyCaptures);
     }
 
+    /// <summary>Registers the saved hot key. An unusable one (taken by another program, or no longer valid) is reported.</summary>
     void RegisterHotKey()
     {
-        _hotKey = new GlobalHotKey(GlobalHotKey.Control | GlobalHotKey.Alt, 0x34); // Ctrl+Alt+4
-        _hotKey.Pressed += (_, _) => CaptureArea();
-        if (!_hotKey.Registered)
+        var spec = _settings.HotKey.IsAllowed ? _settings.HotKey : HotKeySpec.Default;
+        if (!TryRegister(spec))
         {
-            _tray?.ShowBalloonTip(6000, "Picture Viewer", "Ctrl+Alt+4 is already used by another program, so the capture hot key is off. You can still capture from the tray menu.", Forms.ToolTipIcon.Warning);
+            _tray?.ShowBalloonTip(6000, "Picture Viewer", $"{spec.Format()} is already used by another program, so the capture hot key is off. Pick another with Set Capture Hot Key in the tray menu.", Forms.ToolTipIcon.Warning);
         }
+        ShowHotKeyInMenu();
+    }
+
+    bool TryRegister(HotKeySpec spec)
+    {
+        _hotKey?.Dispose();
+        var hotKey = new GlobalHotKey(spec.Modifiers, spec.VirtualKey);
+        if (!hotKey.Registered)
+        {
+            hotKey.Dispose();
+            _hotKey = null;
+            return false;
+        }
+        hotKey.Pressed += (_, _) => CaptureArea();
+        _hotKey = hotKey;
+        return true;
+    }
+
+    void ChangeHotKey()
+    {
+        var current = _settings.HotKey;
+        var dialog = new HotKeyDialog(current);
+        if (dialog.ShowDialog() != true || dialog.Chosen == current) return;
+
+        var chosen = dialog.Chosen;
+        if (TryRegister(chosen))
+        {
+            _settings.HotKey = chosen;
+            _settings.Save();
+        }
+        else
+        {
+            // Put the old one back: a failed change must not leave capture without a hot key.
+            TryRegister(current);
+            MessageBox.Show($"{chosen.Format()} is already used by another program. The hot key stays {current.Format()}.",
+                "Capture Hot Key", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        ShowHotKeyInMenu();
+    }
+
+    void ShowHotKeyInMenu()
+    {
+        if (_captureItem != null)
+            _captureItem.ShortcutKeyDisplayString = _hotKey != null ? _settings.HotKey.Format() : "off";
     }
 
     // ---- Tray ----
@@ -136,7 +180,8 @@ public partial class App : Application
     void BuildTray()
     {
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add(new Forms.ToolStripMenuItem("Capture Screen Area", null, (_, _) => CaptureArea()) { ShortcutKeyDisplayString = "Ctrl+Alt+4" });
+        _captureItem = new Forms.ToolStripMenuItem("Capture Screen Area", null, (_, _) => CaptureArea());
+        menu.Items.Add(_captureItem);
         menu.Items.Add("Show Picture Viewer", null, (_, _) => ShowMainWindow());
         menu.Items.Add("Open…", null, (_, _) =>
         {
@@ -145,6 +190,7 @@ public partial class App : Application
         });
         menu.Items.Add(new Forms.ToolStripSeparator());
 
+        menu.Items.Add("Set Capture Hot Key…", null, (_, _) => ChangeHotKey());
         _copyItem = new Forms.ToolStripMenuItem("Copy Captures to Clipboard") { Checked = _settings.CopyCaptures, CheckOnClick = true };
         _copyItem.CheckedChanged += (_, _) =>
         {
@@ -196,13 +242,13 @@ public partial class App : Application
     {
         if (_toldAboutTray) return;
         _toldAboutTray = true;
-        _tray?.ShowBalloonTip(4000, "Picture Viewer is still running", "Press Ctrl+Alt+4 to capture a screen area, or use the tray icon. Quit from its menu.", Forms.ToolTipIcon.Info);
+        _tray?.ShowBalloonTip(4000, "Picture Viewer is still running", $"Press {_settings.HotKey.Format()} to capture a screen area, or use the tray icon. Quit from its menu.", Forms.ToolTipIcon.Info);
     }
 
     void ShowAbout()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "";
-        MessageBox.Show($"Picture Viewer {version}\nA small picture viewer with light annotation and editing.\n\nCapture hot key: Ctrl+Alt+4",
+        MessageBox.Show($"Picture Viewer {version}\nA small picture viewer with light annotation and editing.\n\nCapture hot key: {_settings.HotKey.Format()}",
             "About Picture Viewer", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 }

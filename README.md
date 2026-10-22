@@ -48,12 +48,12 @@ Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 
 Picture Viewer lives in the system tray. Closing the window only hides it; use **Quit** in the tray menu to exit.
 
-- Capture a screen area with the global hot key **Ctrl+Alt+4** (works while another app is in front; no permission prompt). Drag the area, Esc or right-click cancels. Every screen is frozen first, so you get exactly what you saw
+- Capture a screen area with the global hot key, **Ctrl+Alt+4** by default (works while another app is in front; no permission prompt). Change it with **Set Capture Hot Key…** in the tray menu: press the combination you want. It needs Ctrl, Alt, Shift or Win with the key (Print Screen works alone), and is saved in `%APPDATA%\PictureViewer\settings.json` Drag the area, Esc or right-click cancels. Every screen is frozen first, so you get exactly what you saw
 - The capture is copied to the clipboard (toggle in the tray menu). If a picture is already open it stays put and you can paste the capture onto it with Ctrl+V; otherwise the capture opens to annotate and edit
-- Tray menu: Capture Screen Area, Show Picture Viewer, Open…, Copy Captures to Clipboard, **Open at Login**, About, Quit
+- Tray menu: Capture Screen Area, Show Picture Viewer, Open…, Set Capture Hot Key…, Copy Captures to Clipboard, **Open at Login**, About, Quit
 - Open at Login starts straight into the tray (no window). Starting the app by hand shows the window
 - Only one copy runs; opening a picture while it's running hands the file to the running one
-- If Ctrl+Alt+4 belongs to another program, you get a notice and can still capture from the tray menu
+- If the hot key belongs to another program, you get a notice and can still capture from the tray menu; picking a taken combination in the dialog keeps the old one
 
 ## Edit
 
@@ -114,6 +114,5 @@ Annotations stay editable until the picture is flattened (by an edit below, or w
 
 - PDF shows the first page only (as on macOS)
 - Camera RAW decoding comes from Magick.NET's LibRaw and hasn't been tried against real RAW files yet
-- The capture hot key is fixed at Ctrl+Alt+4
 - Saving re-encodes, so EXIF data is dropped; JPEG is written at quality 92
 - Printing was verified up to the document sent to the printer; the Windows print dialog and physical printers haven't been exercised in automated tests
