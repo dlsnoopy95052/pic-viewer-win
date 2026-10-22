@@ -524,6 +524,7 @@ public partial class MainWindow : Window
     void OnClosed(object? sender, EventArgs e) => _slideshow.Stop();
     void OnRotateLeftClick(object sender, RoutedEventArgs e) => View.RotateBy(-1);
     void OnRotateRightClick(object sender, RoutedEventArgs e) => View.RotateBy(1);
+    void OnAboutClick(object sender, RoutedEventArgs e) => new AboutWindow { Owner = this }.ShowDialog();
     void OnPrintClick(object sender, RoutedEventArgs e) => PrintCurrent();
     void OnPasteClick(object sender, RoutedEventArgs e) => PasteFromClipboard();
     void OnUndoClick(object sender, RoutedEventArgs e) => Undo();

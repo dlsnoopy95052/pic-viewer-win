@@ -245,10 +245,5 @@ public partial class App : Application
         _tray?.ShowBalloonTip(4000, "Picture Viewer is still running", $"Press {_settings.HotKey.Format()} to capture a screen area, or use the tray icon. Quit from its menu.", Forms.ToolTipIcon.Info);
     }
 
-    void ShowAbout()
-    {
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "";
-        MessageBox.Show($"Picture Viewer {version}\nA small picture viewer with light annotation and editing.\n\nCapture hot key: {_settings.HotKey.Format()}",
-            "About Picture Viewer", MessageBoxButton.OK, MessageBoxImage.Information);
-    }
+    void ShowAbout() => new AboutWindow(_hotKey != null ? _settings.HotKey.Format() : null).ShowDialog();
 }

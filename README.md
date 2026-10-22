@@ -11,6 +11,7 @@ Download `PictureViewer-Setup-<version>.exe` (built below) and run it. It instal
 - Opens JPEG, PNG, GIF (animated GIFs play), TIFF, BMP, ICO, WebP, HEIC, AVIF, JXR, PSD, SVG, TGA, JPEG XL, EXR, HDR, PCX, XCF, PDF (first page) and camera RAW (DNG, CR2, CR3, NEF, NRW, ARW, ORF, RW2, RAF, PEF, SRW). WebP, HEIC and AVIF come from Windows when its codec is installed, otherwise from Magick.NET
 - Browse every picture in the same folder; drag and drop; fit / actual size / zoom / pan
 - Info panel with file and EXIF details, thumbnail strip, slideshow, rename, Recycle Bin, copy, show in Explorer, full screen
+- **About** (right-click the picture, or the tray menu) shows the version, commit and the date and time the build was made
 - Annotate, edit, save, capture, print: see the sections below
 - Printing has a live preview, printer / paper / orientation choice, and four scaling modes (shrink to fit, fit to page, actual size, fill page) with optional centering
 

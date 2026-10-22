@@ -155,6 +155,8 @@
                         <MenuItem Header="Thumbnail strip" InputGestureText="Ctrl+T" Click="OnThumbsMenuClick"/>
                         <MenuItem Header="Slideshow" InputGestureText="Space" Click="OnSlideshowClick"/>
                         <MenuItem Header="Full screen" InputGestureText="F11" Click="OnFullScreenClick"/>
+                        <Separator/>
+                        <MenuItem Header="About Picture Viewer" Click="OnAboutClick"/>
                     </ContextMenu>
                 </local:ZoomPanView.ContextMenu>
             </local:ZoomPanView>
