@@ -72,11 +72,61 @@ public static class ImageLoader
         }
     }
 
+    /// <summary>Decodes a small preview (longest side at most <paramref name="max"/> pixels), upright.</summary>
+    public static BitmapSource LoadThumbnail(string path, int max)
+    {
+        if (!ImageFormats.NeedsMagick(path))
+        {
+            try
+            {
+                return LoadNativeThumbnail(path, max);
+            }
+            catch (Exception)
+            {
+                // Fall through to Magick.NET.
+            }
+        }
+
+        using var image = new MagickImage(path);
+        image.AutoOrient();
+        image.Thumbnail((uint)max, (uint)max);
+        return ToBitmapSource(image);
+    }
+
+    static BitmapSource LoadNativeThumbnail(string path, int max)
+    {
+        int width, height, orientation;
+        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        {
+            var frame = BitmapDecoder.Create(stream, BitmapCreateOptions.PreservePixelFormat | BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
+            width = frame.PixelWidth;
+            height = frame.PixelHeight;
+            orientation = ReadOrientation(frame);
+        }
+
+        // Decode straight to thumbnail size; setting only the longer side keeps the aspect ratio.
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.UriSource = new Uri(path);
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        if (width >= height) bitmap.DecodePixelWidth = Math.Min(max, width);
+        else bitmap.DecodePixelHeight = Math.Min(max, height);
+        bitmap.EndInit();
+
+        var oriented = ApplyOrientation(bitmap, orientation);
+        oriented.Freeze();
+        return oriented;
+    }
+
     static BitmapSource LoadWithMagick(string path)
     {
         using var image = new MagickImage(path);
         image.AutoOrient();
+        return ToBitmapSource(image);
+    }
 
+    static BitmapSource ToBitmapSource(MagickImage image)
+    {
         int w = (int)image.Width, h = (int)image.Height;
         bool alpha = image.HasAlpha;
         using var pixels = image.GetPixels();

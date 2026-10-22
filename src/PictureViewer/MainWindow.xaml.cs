@@ -1,5 +1,11 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using Microsoft.VisualBasic.FileIO;
 using Microsoft.Win32;
 
 namespace PictureViewer;
@@ -7,15 +13,27 @@ namespace PictureViewer;
 public partial class MainWindow : Window
 {
     const double ZoomStep = 1.25;
+    static readonly TimeSpan SlideshowInterval = TimeSpan.FromSeconds(3);
 
     readonly FolderBrowser _folder = new();
+    readonly DispatcherTimer _slideshow = new() { Interval = SlideshowInterval };
+
+    BitmapSource? _current;
     int _loadTicket;        // newest load wins; stale ones are dropped
-    int _pixelWidth, _pixelHeight;
+    int _infoTicket;
+    bool _syncingStrip;     // true while code (not the user) changes the strip selection
+    bool _stripDirty;       // folder changed while the strip was hidden
+    bool _fullScreen;
+    WindowState _stateBeforeFullScreen;
 
     public MainWindow()
     {
         InitializeComponent();
         View.ViewChanged += (_, _) => UpdateZoomUi();
+        _slideshow.Tick += (_, _) =>
+        {
+            if (_folder.Advance()) _ = ShowCurrentAsync();
+        };
         UpdateUi();
     }
 
@@ -39,6 +57,7 @@ public partial class MainWindow : Window
             ShowMessage($"Can't find {path}");
             return;
         }
+        RebuildStrip();
         _ = ShowCurrentAsync();
     }
 
@@ -53,19 +72,19 @@ public partial class MainWindow : Window
             var bitmap = await Task.Run(() => ImageLoader.Load(path));
             if (ticket != _loadTicket) return;
 
-            _pixelWidth = bitmap.PixelWidth;
-            _pixelHeight = bitmap.PixelHeight;
+            _current = bitmap;
             View.SetImage(bitmap);
             EmptyText.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
         {
             if (ticket != _loadTicket) return;
-            _pixelWidth = _pixelHeight = 0;
+            _current = null;
             View.SetImage(null);
             ShowMessage($"Can't open {Path.GetFileName(path)}\n{ex.Message}");
         }
         UpdateUi();
+        RefreshInfoPanel();
     }
 
     void ShowMessage(string text)
@@ -74,21 +93,36 @@ public partial class MainWindow : Window
         EmptyText.Visibility = Visibility.Visible;
     }
 
+    void ShowError(string text) =>
+        MessageBox.Show(this, text, "Picture Viewer", MessageBoxButton.OK, MessageBoxImage.Warning);
+
     void Navigate(int delta)
     {
         if (_folder.Move(delta)) _ = ShowCurrentAsync();
     }
 
+    void NavigateTo(int index)
+    {
+        if (_folder.MoveTo(index)) _ = ShowCurrentAsync();
+    }
+
+    // ---- UI state ----
+
     void UpdateUi()
     {
-        bool hasImage = View.HasImage;
+        bool hasImage = _current != null;
+        bool hasFile = _folder.Current != null;
 
         PrevButton.IsEnabled = _folder.HasPrevious;
         NextButton.IsEnabled = _folder.HasNext;
         PrevOverlay.Visibility = _folder.HasPrevious ? Visibility.Visible : Visibility.Collapsed;
         NextOverlay.Visibility = _folder.HasNext ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var b in new[] { ZoomInButton, ZoomOutButton, FitButton, ActualButton })
+        foreach (var b in new[] { ZoomInButton, ZoomOutButton, FitButton, ActualButton, CopyButton })
             b.IsEnabled = hasImage;
+        RenameButton.IsEnabled = DeleteButton.IsEnabled = hasFile;
+
+        if (_folder.Files.Count < 2) StopSlideshow();
+        SlideshowButton.IsEnabled = _folder.Files.Count > 1;
 
         if (_folder.Current is { } path)
         {
@@ -96,7 +130,7 @@ public partial class MainWindow : Window
             Title = $"{name} - Picture Viewer";
             NameText.Text = name;
             PositionText.Text = $"{_folder.Index + 1} / {_folder.Files.Count}";
-            InfoText.Text = hasImage ? $"{_pixelWidth} × {_pixelHeight}  ·  {FormatSize(path)}" : "";
+            InfoText.Text = hasImage ? $"{_current!.PixelWidth} × {_current.PixelHeight}  ·  {FileSize(path)}" : "";
         }
         else
         {
@@ -104,27 +138,146 @@ public partial class MainWindow : Window
             NameText.Text = PositionText.Text = InfoText.Text = "";
             EmptyText.Visibility = Visibility.Visible;
         }
+        SyncStrip();
         UpdateZoomUi();
     }
 
     void UpdateZoomUi() =>
         ZoomText.Text = View.HasImage ? $"{View.Zoom * 100:0}%" : "";
 
-    static string FormatSize(string path)
+    static string FileSize(string path)
     {
-        try
+        try { return ImageInfo.FormatBytes(new FileInfo(path).Length); }
+        catch (IOException) { return ""; }
+    }
+
+    // ---- Info panel ----
+
+    // The toolbar toggle owns the state; setting IsChecked runs OnInfoToggled.
+    void SetInfoPanel(bool on) => InfoButton.IsChecked = on;
+
+    void OnInfoToggled(object sender, RoutedEventArgs e)
+    {
+        InfoPanel.Visibility = InfoButton.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        RefreshInfoPanel();
+    }
+
+    void RefreshInfoPanel()
+    {
+        if (InfoPanel.Visibility != Visibility.Visible) return;
+        if (_folder.Current is not { } path || _current is not { } bitmap)
         {
-            double bytes = new FileInfo(path).Length;
-            string[] units = ["B", "KB", "MB", "GB"];
-            int u = 0;
-            while (bytes >= 1024 && u < units.Length - 1) { bytes /= 1024; u++; }
-            return u == 0 ? $"{bytes:0} {units[u]}" : $"{bytes:0.#} {units[u]}";
+            InfoPanelText.Text = "";
+            return;
         }
-        catch (IOException)
+
+        int ticket = ++_infoTicket;
+        int w = bitmap.PixelWidth, h = bitmap.PixelHeight;
+        _ = Task.Run(() => ImageInfo.Lines(path, w, h)).ContinueWith(t =>
         {
-            return "";
+            if (ticket == _infoTicket && t.IsCompletedSuccessfully)
+                InfoPanelText.Text = string.Join("\n", t.Result);
+        }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    // ---- Thumbnail strip ----
+
+    void SetThumbnails(bool on) => ThumbsButton.IsChecked = on;
+
+    void OnThumbsToggled(object sender, RoutedEventArgs e)
+    {
+        bool on = ThumbsButton.IsChecked == true;
+        Strip.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        if (on && _stripDirty) RebuildStrip();
+        SyncStrip();
+    }
+
+    void RebuildStrip()
+    {
+        if (Strip.Visibility != Visibility.Visible)
+        {
+            _stripDirty = true;
+            return;
+        }
+        _stripDirty = false;
+        _syncingStrip = true;
+        Strip.ItemsSource = _folder.Files.Select(f => new ThumbItem(f)).ToList();
+        _syncingStrip = false;
+        SyncStrip();
+    }
+
+    void SyncStrip()
+    {
+        if (Strip.Visibility != Visibility.Visible || _folder.Index < 0 || Strip.Items.Count == 0) return;
+        _syncingStrip = true;
+        Strip.SelectedIndex = _folder.Index;
+        Strip.ScrollIntoView(Strip.SelectedItem);
+        _syncingStrip = false;
+    }
+
+    void OnStripSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_syncingStrip && Strip.SelectedIndex >= 0) NavigateTo(Strip.SelectedIndex);
+    }
+
+    /// <summary>The strip scrolls sideways, so the wheel moves it left / right.</summary>
+    void OnStripWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (FindScrollViewer(Strip) is { } sv)
+            sv.ScrollToHorizontalOffset(sv.HorizontalOffset - e.Delta);
+        e.Handled = true;
+    }
+
+    static ScrollViewer? FindScrollViewer(DependencyObject root)
+    {
+        for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is ScrollViewer sv) return sv;
+            if (FindScrollViewer(child) is { } nested) return nested;
+        }
+        return null;
+    }
+
+    // ---- Slideshow / full screen ----
+
+    void ToggleSlideshow()
+    {
+        if (_slideshow.IsEnabled) StopSlideshow();
+        else if (_folder.Files.Count > 1)
+        {
+            _slideshow.Start();
+            SlideshowButton.Content = "";
+            SlideshowButton.ToolTip = "Stop slideshow (Space)";
         }
     }
+
+    void StopSlideshow()
+    {
+        _slideshow.Stop();
+        SlideshowButton.Content = "";
+        SlideshowButton.ToolTip = "Start slideshow (Space)";
+    }
+
+    void ToggleFullScreen()
+    {
+        _fullScreen = !_fullScreen;
+        if (_fullScreen)
+        {
+            _stateBeforeFullScreen = WindowState;
+            WindowState = WindowState.Normal; // lets the maximized window cover the taskbar
+            WindowStyle = WindowStyle.None;
+            WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            WindowStyle = WindowStyle.SingleBorderWindow;
+            WindowState = _stateBeforeFullScreen;
+        }
+        Toolbar.Visibility = StatusBar.Visibility = _fullScreen ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    // ---- File actions ----
 
     void OpenDialog()
     {
@@ -133,6 +286,109 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog(this) == true) OpenPath(dlg.FileName);
     }
 
+    void CopyImage()
+    {
+        if (_current is null) return;
+        try
+        {
+            var data = new DataObject();
+            data.SetImage(_current);
+
+            // The plain bitmap format has no transparency; PNG-aware apps (browsers, Office) use this one.
+            var png = new MemoryStream();
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(_current));
+            encoder.Save(png);
+            data.SetData("PNG", png);
+
+            Clipboard.SetDataObject(data, copy: true); // copy: true keeps it after the app exits
+        }
+        catch (COMException)
+        {
+            ShowError("The clipboard is in use by another program. Try again.");
+        }
+    }
+
+    void RenameCurrent()
+    {
+        if (_folder.Current is not { } path) return;
+
+        var dialog = new RenameDialog(Path.GetFileName(path)) { Owner = this };
+        if (dialog.ShowDialog() != true) return;
+
+        string name = dialog.NewName;
+        if (name.Length == 0 || name == Path.GetFileName(path)) return;
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            ShowError("A file name can't contain any of these characters:\n\\ / : * ? \" < > |");
+            return;
+        }
+
+        string dest = Path.Combine(Path.GetDirectoryName(path)!, name);
+        if (File.Exists(dest) && !string.Equals(dest, path, StringComparison.OrdinalIgnoreCase))
+        {
+            ShowError("A file with that name already exists.");
+            return;
+        }
+
+        try
+        {
+            File.Move(path, dest);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ShowError(ex.Message);
+            return;
+        }
+
+        _folder.OpenFile(dest);
+        RebuildStrip();
+        UpdateUi();
+        RefreshInfoPanel();
+    }
+
+    void DeleteCurrent()
+    {
+        if (_folder.Current is not { } path) return;
+
+        try
+        {
+            FileSystem.DeleteFile(path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ShowError(ex.Message);
+            return;
+        }
+
+        _folder.Refresh();
+        RebuildStrip();
+        if (_folder.Current is null)
+        {
+            _current = null;
+            View.SetImage(null);
+            ShowMessage("No more pictures in this folder");
+            UpdateUi();
+            RefreshInfoPanel();
+        }
+        else
+        {
+            _ = ShowCurrentAsync();
+        }
+    }
+
+    void RevealCurrent()
+    {
+        if (_folder.Current is { } path)
+            Process.Start("explorer.exe", $"/select,\"{path}\"");
+    }
+
+    // ---- Event handlers ----
+
     void OnOpenClick(object sender, RoutedEventArgs e) => OpenDialog();
     void OnPrevClick(object sender, RoutedEventArgs e) => Navigate(-1);
     void OnNextClick(object sender, RoutedEventArgs e) => Navigate(1);
@@ -140,6 +396,15 @@ public partial class MainWindow : Window
     void OnZoomOutClick(object sender, RoutedEventArgs e) => View.ZoomBy(1 / ZoomStep);
     void OnFitClick(object sender, RoutedEventArgs e) => View.FitToWindow();
     void OnActualClick(object sender, RoutedEventArgs e) => View.ActualSize();
+    void OnSlideshowClick(object sender, RoutedEventArgs e) => ToggleSlideshow();
+    void OnInfoMenuClick(object sender, RoutedEventArgs e) => SetInfoPanel(InfoPanel.Visibility != Visibility.Visible);
+    void OnThumbsMenuClick(object sender, RoutedEventArgs e) => SetThumbnails(Strip.Visibility != Visibility.Visible);
+    void OnCopyClick(object sender, RoutedEventArgs e) => CopyImage();
+    void OnRenameClick(object sender, RoutedEventArgs e) => RenameCurrent();
+    void OnDeleteClick(object sender, RoutedEventArgs e) => DeleteCurrent();
+    void OnRevealClick(object sender, RoutedEventArgs e) => RevealCurrent();
+    void OnFullScreenClick(object sender, RoutedEventArgs e) => ToggleFullScreen();
+    void OnClosed(object? sender, EventArgs e) => _slideshow.Stop();
 
     void OnDrop(object sender, DragEventArgs e)
     {
@@ -154,10 +419,23 @@ public partial class MainWindow : Window
         switch (e.Key)
         {
             case Key.O when ctrl: OpenDialog(); break;
+            case Key.C when ctrl: CopyImage(); break;
+            case Key.I when ctrl: SetInfoPanel(InfoPanel.Visibility != Visibility.Visible); break;
+            case Key.T when ctrl: SetThumbnails(Strip.Visibility != Visibility.Visible); break;
+            case Key.R when ctrl: RevealCurrent(); break;
+            case Key.F2: RenameCurrent(); break;
+            case Key.Delete: DeleteCurrent(); break;
+            case Key.F11: ToggleFullScreen(); break;
+            case Key.Escape:
+                if (_fullScreen) ToggleFullScreen();
+                else if (_slideshow.IsEnabled) StopSlideshow();
+                else e.Handled = false;
+                break;
+            case Key.Space: ToggleSlideshow(); break;
             case Key.Left or Key.PageUp: Navigate(-1); break;
-            case Key.Right or Key.PageDown or Key.Space: Navigate(1); break;
-            case Key.Home: if (_folder.MoveTo(0)) _ = ShowCurrentAsync(); break;
-            case Key.End: if (_folder.MoveTo(_folder.Files.Count - 1)) _ = ShowCurrentAsync(); break;
+            case Key.Right or Key.PageDown: Navigate(1); break;
+            case Key.Home: NavigateTo(0); break;
+            case Key.End: NavigateTo(_folder.Files.Count - 1); break;
             case Key.OemPlus or Key.Add: View.ZoomBy(ZoomStep); break;
             case Key.OemMinus or Key.Subtract: View.ZoomBy(1 / ZoomStep); break;
             case Key.D0 or Key.NumPad0: View.FitToWindow(); break;

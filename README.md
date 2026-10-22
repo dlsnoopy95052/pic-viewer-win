@@ -32,11 +32,29 @@ Features carried over from the macOS app, with the Windows technology used for e
 
 Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 
+## Keyboard shortcuts
+
+| Action | Keys |
+|---|---|
+| Open | Ctrl+O |
+| Previous / next picture | ← / → (or PgUp / PgDn) |
+| First / last picture | Home / End |
+| Fit to window / actual size | 0 / 1 |
+| Zoom in / out | + / - or mouse wheel |
+| Slideshow (3 s, loops) | Space; Esc stops |
+| Info panel | Ctrl+I |
+| Thumbnail strip | Ctrl+T |
+| Copy picture | Ctrl+C |
+| Rename | F2 |
+| Move to Recycle Bin | Delete |
+| Show in Explorer | Ctrl+R |
+| Full screen | F11; Esc leaves |
+
 ## Milestones
 
-1. Open a Picture, browse the folder, fit / zoom / pan
-2. Info panel, thumbnail strip, slideshow, rename, trash, copy / paste
-3. Annotations
+1. ✅ Open a Picture, browse the folder, fit / zoom / pan
+2. ✅ Info panel, thumbnail strip, slideshow, rename, Recycle Bin, copy, full screen
+3. Annotations, including paste (a Pasted layer) and View rotation
 4. Flatten and Edit
 5. Capture with global hot key, tray icon, Open at Login
 6. Printing, extra formats, installer (MSIX or Inno Setup)

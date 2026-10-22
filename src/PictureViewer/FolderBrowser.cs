@@ -47,6 +47,14 @@ public sealed class FolderBrowser
         return true;
     }
 
+    /// <summary>Moves to the next Picture, wrapping to the first after the last (used by the slideshow).</summary>
+    public bool Advance()
+    {
+        if (Files.Count < 2) return false;
+        Index = (Index + 1) % Files.Count;
+        return true;
+    }
+
     public bool MoveTo(int index)
     {
         if (index < 0 || index >= Files.Count || index == Index) return false;
