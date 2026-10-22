@@ -20,6 +20,13 @@
     <!-- Avoid WPF / WinForms type clashes (Application, Clipboard, ...) -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
+    <!-- The WPF SDK drops these from implicit usings -->
+    <Using Include="System.IO" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="15.0.0" />
   </ItemGroup>
 
 </Project>

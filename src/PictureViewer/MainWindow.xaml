@@ -1,11 +1,57 @@
 ﻿<Window x:Class="PictureViewer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Picture Viewer" Height="720" Width="1100"
-        WindowStartupLocation="CenterScreen">
-    <Grid>
-        <TextBlock Text="Picture Viewer for Windows"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   FontSize="24" />
-    </Grid>
+        xmlns:local="clr-namespace:PictureViewer"
+        Title="Picture Viewer" Height="720" Width="1100" MinWidth="480" MinHeight="320"
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True" Drop="OnDrop" PreviewKeyDown="OnKeyDown">
+    <DockPanel>
+
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+                BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="0,0,0,1"
+                Padding="6,4">
+            <DockPanel LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button Style="{StaticResource ToolButton}" Content="&#xE8E5;" ToolTip="Open (Ctrl+O)" Click="OnOpenClick"/>
+                    <Button x:Name="PrevButton" Style="{StaticResource ToolButton}" Content="&#xE76B;" ToolTip="Previous (←)" Click="OnPrevClick"/>
+                    <Button x:Name="NextButton" Style="{StaticResource ToolButton}" Content="&#xE76C;" ToolTip="Next (→)" Click="OnNextClick"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="ZoomOutButton" Style="{StaticResource ToolButton}" Content="&#xE71F;" ToolTip="Zoom out (-)" Click="OnZoomOutClick"/>
+                    <Button x:Name="ZoomInButton" Style="{StaticResource ToolButton}" Content="&#xE8A3;" ToolTip="Zoom in (+)" Click="OnZoomInClick"/>
+                    <Button x:Name="FitButton" Style="{StaticResource ToolButton}" Content="Fit" FontFamily="Segoe UI" FontSize="13" Width="44" ToolTip="Fit to window (0)" Click="OnFitClick"/>
+                    <Button x:Name="ActualButton" Style="{StaticResource ToolButton}" Content="100%" FontFamily="Segoe UI" FontSize="13" Width="48" ToolTip="Actual size (1)" Click="OnActualClick"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+                BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="0,1,0,0"
+                Padding="10,4">
+            <DockPanel>
+                <TextBlock x:Name="ZoomText" DockPanel.Dock="Right" Margin="16,0,0,0"/>
+                <TextBlock x:Name="InfoText" DockPanel.Dock="Right" Margin="16,0,0,0"/>
+                <TextBlock x:Name="PositionText" DockPanel.Dock="Right"/>
+                <TextBlock x:Name="NameText" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Viewer -->
+        <Grid Background="#1E1E1E">
+            <local:ZoomPanView x:Name="View"/>
+
+            <TextBlock x:Name="EmptyText" Foreground="#A0A0A0" FontSize="18" TextAlignment="Center"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+                       TextWrapping="Wrap" MaxWidth="560"
+                       Text="Drop a picture or folder here, or press Ctrl+O"/>
+
+            <Button x:Name="PrevOverlay" Style="{StaticResource OverlayArrow}" Content="&#xE76B;"
+                    HorizontalAlignment="Left" VerticalAlignment="Center" Margin="14,0,0,0" Click="OnPrevClick"/>
+            <Button x:Name="NextOverlay" Style="{StaticResource OverlayArrow}" Content="&#xE76C;"
+                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,14,0" Click="OnNextClick"/>
+        </Grid>
+
+    </DockPanel>
 </Window>
