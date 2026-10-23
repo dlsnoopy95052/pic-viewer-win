@@ -37,7 +37,7 @@ The installer script publishes a self-contained win-x64 build and packs it with 
 | Area capture | `screencapture` | Frozen-screen selection overlay (GDI `BitBlt`) |
 | Menu bar presence | `NSStatusItem` | System tray `NotifyIcon` |
 | Open at Login | `SMAppService` | `HKCU\...\Run` registry value |
-| Edit (crop, flip, brightness, contrast, saturation) | CoreImage | `WriteableBitmap` pixel maths |
+| Edit (crop, rotate, expand canvas, flip, brightness, contrast, saturation) | CoreImage | `WriteableBitmap` pixel maths |
 | Annotations | AppKit drawing | WPF layer in Picture-pixel space inside the zoom / pan transform |
 | Clipboard | `NSPasteboard` | `System.Windows.Clipboard` (bitmap + PNG) |
 | Printing with preview | `NSPrintPanel` | Own preview window + `PrintDialog` |
@@ -60,7 +60,10 @@ Picture Viewer lives in the system tray. Closing the window only hides it; use *
 
 Editing changes the picture's pixels, so it flattens any annotations and the view rotation first.
 
-- Crop (drag the area, click Crop again to apply; Esc cancels), flip horizontally / vertically
+- Crop (drag the area, then move it or drag its handles; click Crop again or press Enter to apply, Esc cancels), flip horizontally / vertically
+- Crop shape: Free, Original, 1:1, 4:3, 3:2, 16:9, 5:4, a swap for landscape / portrait, or a **Custom size** in pixels (the crop is scaled to exactly that size)
+- **Rotate by any angle** (the ∠ button): a slider from −45° to +45°, 0.1° nudges, or type the angle; a fixed guide grid helps level a horizon. The whole rotated picture is kept and the empty corners are transparent, so crop afterwards to trim them. Closing the popup cancels
+- **Expand canvas** (the ⊞ button): add space on any side, filled white, black or transparent, so annotations and pasted pictures can go outside the original. Anything drawn outside the picture is not shown, because it would not be saved
 - Brightness / contrast / saturation with live preview; Cancel by closing the popup
 - Undo for every step, including edits that change the pixels
 - Save overwrites after a confirmation (JPEG, PNG, TIFF); anything else, and pasted pictures, go through Save a Copy. JPEG is saved at quality 92 on a white background, and re-saving drops EXIF data
@@ -115,5 +118,6 @@ Annotations stay editable until the picture is flattened (by an edit below, or w
 
 - PDF shows the first page only (as on macOS)
 - Camera RAW decoding comes from Magick.NET's LibRaw and hasn't been tried against real RAW files yet
+- Transparent areas (from Rotate or Expand canvas) become white when saved as JPEG; save as PNG to keep them
 - Saving re-encodes, so EXIF data is dropped; JPEG is written at quality 92
 - Printing was verified up to the document sent to the printer; the Windows print dialog and physical printers haven't been exercised in automated tests

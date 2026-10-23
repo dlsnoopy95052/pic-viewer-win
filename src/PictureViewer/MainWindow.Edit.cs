@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
@@ -14,10 +15,16 @@ public partial class MainWindow
 
     Popup? _adjustPopup;
     int _adjustTicket;
+    Size? _cropOutput;          // exact pixel size the crop is scaled to ("Custom size"); null = keep the cropped pixels
+    bool _updatingCropUi;
 
     void InitEditing()
     {
-        View.Layer.CropModeChanged += (_, _) => CropButton.IsChecked = View.Layer.CropMode;
+        View.Layer.CropModeChanged += (_, _) =>
+        {
+            CropButton.IsChecked = View.Layer.CropMode;
+            CropOptions.Visibility = View.Layer.CropMode ? Visibility.Visible : Visibility.Collapsed;
+        };
     }
 
     /// <summary>
@@ -55,18 +62,86 @@ public partial class MainWindow
         if (!layer.CropMode)
         {
             FlattenPending();
+            ApplyCropRatio(); // before entering, so the area starts out in the chosen shape
             layer.CropMode = true;
         }
         else if (layer.CropPixelRect is { } area)
         {
             layer.CropMode = false;
-            ApplyEdit(ImageEdit.Crop(_current, area));
+            var cropped = ImageEdit.Crop(_current, area);
+            if (_cropOutput is { } size && ((int)size.Width != cropped.PixelWidth || (int)size.Height != cropped.PixelHeight))
+                cropped = ImageEdit.Resize(cropped, (int)size.Width, (int)size.Height);
+            ApplyEdit(cropped);
         }
         else
         {
             layer.CropMode = false;
         }
         CropButton.IsChecked = layer.CropMode;
+    }
+
+    void OnCropRatioChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsInitialized || _updatingCropUi || CropRatioBox.SelectedItem is not ComboBoxItem { Tag: string tag }) return;
+        if (tag == "custom")
+        {
+            AskCropSize();
+            return;
+        }
+        _cropOutput = null;
+        CropCustomItem.Content = "Custom size…";
+        ApplyCropRatio();
+    }
+
+    /// <summary>Hands the layer the aspect ratio the toolbar currently describes.</summary>
+    void ApplyCropRatio()
+    {
+        double? aspect = null;
+        if (_current != null && CropRatioBox.SelectedItem is ComboBoxItem { Tag: string tag })
+        {
+            if (tag == "original") aspect = (double)_current.PixelWidth / _current.PixelHeight;
+            else if (tag == "custom") aspect = _cropOutput is { } size ? size.Width / size.Height : null;
+            else if (tag.Split(':') is [var w, var h] && double.TryParse(w, out double wd) && double.TryParse(h, out double hd)) aspect = wd / hd;
+        }
+        View.Layer.CropAspect = aspect;
+    }
+
+    void OnCropSwapClick(object sender, RoutedEventArgs e)
+    {
+        if (View.Layer.CropAspect is not { } aspect) return;
+        if (_cropOutput is { } size) SetCropOutput(new Size(size.Height, size.Width));
+        else View.Layer.CropAspect = 1 / aspect;
+    }
+
+    void OnCropSizeClick(object sender, RoutedEventArgs e) => AskCropSize();
+
+    void AskCropSize()
+    {
+        if (_current is null) return;
+        var start = _cropOutput is { } s ? new Int32Rect(0, 0, (int)s.Width, (int)s.Height)
+            : View.Layer.CropPixelRect ?? new Int32Rect(0, 0, _current.PixelWidth, _current.PixelHeight);
+        var dialog = new CropSizeDialog(start.Width, start.Height) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            SetCropOutput(new Size(dialog.PixelWidth, dialog.PixelHeight));
+            return;
+        }
+        if (_cropOutput is null) SelectCropRatio("free"); // nothing was chosen, so don't sit on an empty "Custom"
+    }
+
+    void SetCropOutput(Size size)
+    {
+        _cropOutput = size;
+        CropCustomItem.Content = $"{(int)size.Width} × {(int)size.Height}";
+        SelectCropRatio("custom");
+    }
+
+    void SelectCropRatio(string tag)
+    {
+        _updatingCropUi = true;
+        CropRatioBox.SelectedItem = CropRatioBox.Items.OfType<ComboBoxItem>().First(i => (string)i.Tag == tag);
+        _updatingCropUi = false;
+        ApplyCropRatio();
     }
 
     void OnFlipHClick(object sender, RoutedEventArgs e) => Flip(horizontal: true);
@@ -160,8 +235,20 @@ public partial class MainWindow
                 },
             },
         };
+        UsePlainFont(popup);
         _adjustPopup = popup;
         popup.IsOpen = true;
+    }
+
+    /// <summary>
+    /// A popup takes its text style from the button it hangs from, which here is a big icon font; use the normal
+    /// system font instead.
+    /// </summary>
+    static void UsePlainFont(Popup popup)
+    {
+        if (popup.Child is not DependencyObject root) return;
+        TextElement.SetFontFamily(root, SystemFonts.MessageFontFamily);
+        TextElement.SetFontSize(root, SystemFonts.MessageFontSize);
     }
 
     static (Slider Slider, UIElement Row) SliderRow(string label, double min, double max, double value)

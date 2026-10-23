@@ -94,9 +94,27 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <ToggleButton x:Name="CropButton" Style="{StaticResource ToolToggle}" Content="&#xE7A8;" ToolTip="Crop: drag the area to keep, then click again to apply (Ctrl+K)" Click="OnCropClick"/>
+                    <StackPanel x:Name="CropOptions" Orientation="Horizontal" Visibility="Collapsed">
+                        <ComboBox x:Name="CropRatioBox" Width="104" Height="26" Margin="4,0" VerticalContentAlignment="Center" Focusable="False"
+                                  SelectedIndex="0" ToolTip="Shape of the crop area" SelectionChanged="OnCropRatioChanged">
+                            <ComboBoxItem Tag="free" Content="Free"/>
+                            <ComboBoxItem Tag="original" Content="Original"/>
+                            <ComboBoxItem Tag="1:1" Content="1:1 square"/>
+                            <ComboBoxItem Tag="4:3" Content="4:3"/>
+                            <ComboBoxItem Tag="3:2" Content="3:2"/>
+                            <ComboBoxItem Tag="16:9" Content="16:9"/>
+                            <ComboBoxItem Tag="5:4" Content="5:4"/>
+                            <ComboBoxItem x:Name="CropCustomItem" Tag="custom" Content="Custom size…"/>
+                        </ComboBox>
+                        <Button x:Name="CropSwapButton" Style="{StaticResource ToolButton}" Content="&#x21C4;" FontFamily="Segoe UI Symbol" FontSize="20" ToolTip="Swap landscape / portrait" Click="OnCropSwapClick"/>
+                        <Button Height="26" Margin="4,0" Padding="10,0" Focusable="False" Content="Size…" ToolTip="Crop to an exact size in pixels" Click="OnCropSizeClick"/>
+                        <Rectangle Width="1" Margin="8,4" Fill="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"/>
+                    </StackPanel>
+                    <ToggleButton x:Name="CropButton" Style="{StaticResource ToolToggle}" Content="&#xE7A8;" ToolTip="Crop: drag the area to keep (then move or resize it), and click again or press Enter to apply (Ctrl+K)" Click="OnCropClick"/>
                     <Button x:Name="FlipHButton" Style="{StaticResource ToolButton}" Content="&#x21CB;" FontFamily="Segoe UI Symbol" FontSize="20" ToolTip="Flip horizontally" Click="OnFlipHClick"/>
                     <Button x:Name="FlipVButton" Style="{StaticResource ToolButton}" Content="&#x21C5;" FontFamily="Segoe UI Symbol" FontSize="20" ToolTip="Flip vertically" Click="OnFlipVClick"/>
+                    <Button x:Name="CanvasButton" Style="{StaticResource ToolButton}" Content="&#x229E;" FontFamily="Segoe UI Symbol" FontSize="20" ToolTip="Expand the canvas: add space around the picture" Click="OnCanvasClick"/>
+                    <Button x:Name="StraightenButton" Style="{StaticResource ToolButton}" Content="&#x2220;" FontFamily="Segoe UI Symbol" FontSize="20" ToolTip="Rotate by any angle (straighten)" Click="OnStraightenClick"/>
                     <Button x:Name="AdjustButton" Style="{StaticResource ToolButton}" Content="&#xE706;" ToolTip="Brightness / contrast / saturation" Click="OnAdjustClick"/>
                     <Rectangle Width="1" Margin="8,4" Fill="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"/>
                     <Button x:Name="UndoButton" Style="{StaticResource ToolButton}" Content="&#xE7A7;" ToolTip="Undo (Ctrl+Z)" Click="OnUndoClick"/>
