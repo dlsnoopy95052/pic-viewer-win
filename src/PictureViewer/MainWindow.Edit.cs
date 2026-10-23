@@ -236,6 +236,7 @@ public partial class MainWindow
             },
         };
         UsePlainFont(popup);
+        AlignToRightEdge(popup);
         _adjustPopup = popup;
         popup.IsOpen = true;
     }
@@ -249,6 +250,17 @@ public partial class MainWindow
         if (popup.Child is not DependencyObject root) return;
         TextElement.SetFontFamily(root, SystemFonts.MessageFontFamily);
         TextElement.SetFontSize(root, SystemFonts.MessageFontSize);
+    }
+
+    /// <summary>
+    /// These buttons sit at the right end of the toolbar, so a popup that starts at the button's left edge would hang
+    /// off the window; line its right edge up with the button's instead.
+    /// </summary>
+    static void AlignToRightEdge(Popup popup)
+    {
+        popup.Placement = PlacementMode.Custom;
+        popup.CustomPopupPlacementCallback = (popupSize, targetSize, _) =>
+            [new CustomPopupPlacement(new Point(targetSize.Width - popupSize.Width, targetSize.Height), PopupPrimaryAxis.Horizontal)];
     }
 
     static (Slider Slider, UIElement Row) SliderRow(string label, double min, double max, double value)

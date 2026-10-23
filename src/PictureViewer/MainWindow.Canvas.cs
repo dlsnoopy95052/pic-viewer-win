@@ -151,6 +151,7 @@ public partial class MainWindow
         };
         sizeText.Text = $"New size: {baseImage.PixelWidth} × {baseImage.PixelHeight} px";
         UsePlainFont(popup);
+        AlignToRightEdge(popup);
         _canvasPopup = popup;
         popup.IsOpen = true;
     }

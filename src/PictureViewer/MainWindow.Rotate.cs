@@ -121,6 +121,7 @@ public partial class MainWindow
             },
         };
         UsePlainFont(popup);
+        AlignToRightEdge(popup);
         _rotatePopup = popup;
         popup.IsOpen = true;
     }
