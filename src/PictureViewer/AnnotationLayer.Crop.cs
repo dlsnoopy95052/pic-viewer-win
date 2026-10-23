@@ -23,6 +23,20 @@ public sealed partial class AnnotationLayer
 
     public event EventHandler? CropModeChanged;
 
+    /// <summary>
+    /// Text recognition: crop mode used only to choose an area, without handles. Set it before turning
+    /// <see cref="CropMode"/> on; turning crop mode off clears it.
+    /// </summary>
+    public bool OcrMode { get; set; }
+
+    /// <summary>Raised when a new area has been dragged out in <see cref="OcrMode"/>.</summary>
+    public event EventHandler<Int32Rect>? OcrAreaChosen;
+
+    void RaiseOcrAreaChosen()
+    {
+        if (_cropMode && OcrMode && CropPixelRect is { } area) OcrAreaChosen?.Invoke(this, area);
+    }
+
     /// <summary>While on, dragging selects the area to keep instead of drawing or selecting annotations.</summary>
     public bool CropMode
     {
@@ -39,6 +53,7 @@ public sealed partial class AnnotationLayer
                 SelectedIndex = null;
                 if (_cropAspect is { } a) FitCropTo(a);
             }
+            if (!value) OcrMode = false;
             Cursor = value ? Cursors.Cross : (_tool == AnnotationTool.None ? null : Cursors.Cross);
             InvalidateVisual();
             CropModeChanged?.Invoke(this, EventArgs.Empty);
@@ -98,7 +113,7 @@ public sealed partial class AnnotationLayer
     bool CropPointerDown(Point p)
     {
         _active = true;
-        if (_cropRect is { } r)
+        if (_cropRect is { } r && !OcrMode)
         {
             if (CropHandleAt(r, p) is { } handle)
             {
@@ -281,7 +296,7 @@ public sealed partial class AnnotationLayer
 
         var accent = new Pen(new SolidColorBrush(AccentColor), 1.5 / k);
         double half = 4.5 / k;
-        for (int i = 0; i < 8; i++)
+        for (int i = 0; i < 8 && !OcrMode; i++)
         {
             var c = CropHandlePoint(r, i);
             dc.DrawRectangle(Brushes.White, accent, new Rect(c.X - half, c.Y - half, half * 2, half * 2));

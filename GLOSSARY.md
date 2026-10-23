@@ -43,6 +43,10 @@ _Avoid_: Adjust (as the general term)
 An Edit that adds empty space around the Picture, so Annotations and Pasted layers can go outside the original. The new area is white, black or transparent.
 _Avoid_: Resize, pad
 
+**Recognize text**:
+Read the text in an area of the open Picture and copy it to the clipboard. It only reads the Picture's own pixels, not Annotations or Pasted layers.
+_Avoid_: Scan, extract
+
 **Close**:
 Empty the viewer of the open Picture. While a Picture is open a Capture only goes to the clipboard, to be pasted onto it; with nothing open the Capture opens on its own.
 _Avoid_: Quit (that exits the app)

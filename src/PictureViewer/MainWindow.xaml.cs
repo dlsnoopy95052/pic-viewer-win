@@ -37,6 +37,7 @@ public partial class MainWindow : Window
         };
         InitAnnotations();
         InitEditing();
+        InitOcr();
         UpdateUi();
     }
 
@@ -572,7 +573,8 @@ public partial class MainWindow : Window
             case Key.S when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift): SaveCopy(); break;
             case Key.S when ctrl: SaveInPlace(); break;
             case Key.K when ctrl: CropAction(); break;
-            case Key.Enter when View.Layer.CropMode: CropAction(); break;
+            case Key.T when Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift): OcrAction(); break;
+            case Key.Enter when View.Layer.CropMode && !View.Layer.OcrMode: CropAction(); break;
             case Key.P when ctrl: PrintCurrent(); break;
             case Key.V when ctrl: PasteFromClipboard(); break;
             case Key.Z when ctrl: Undo(); break;

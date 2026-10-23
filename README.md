@@ -12,6 +12,7 @@ Download `PictureViewer-Setup-<version>.exe` (built below) and run it. It instal
 - Browse every picture in the same folder; drag and drop; fit / actual size / zoom / pan
 - Info panel with file and EXIF details, thumbnail strip, slideshow, rename, Recycle Bin, copy, show in Explorer, full screen
 - **About** (right-click the picture, or the tray menu) shows the version, commit and the date and time the build was made
+- **Recognize text (OCR)**: drag an area of the open picture and its text is copied to the clipboard; see the section below
 - Annotate, edit, save, capture, print: see the sections below
 - Printing has a live preview, printer / paper / orientation choice, and four scaling modes (shrink to fit, fit to page, actual size, fill page) with optional centering
 
@@ -41,6 +42,7 @@ The installer script publishes a self-contained win-x64 build and packs it with 
 | Annotations | AppKit drawing | WPF layer in Picture-pixel space inside the zoom / pan transform |
 | Clipboard | `NSPasteboard` | `System.Windows.Clipboard` (bitmap + PNG) |
 | Printing with preview | `NSPrintPanel` | Own preview window + `PrintDialog` |
+| Text recognition (OCR) | Vision `VNRecognizeTextRequest` | `Windows.Media.Ocr` |
 | Trash | Finder trash | Recycle Bin (`Microsoft.VisualBasic.FileIO`) |
 
 Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
@@ -68,6 +70,14 @@ Editing changes the picture's pixels, so it flattens any annotations and the vie
 - Undo for every step, including edits that change the pixels
 - Save overwrites after a confirmation (JPEG, PNG, TIFF); anything else, and pasted pictures, go through Save a Copy. JPEG is saved at quality 92 on a white background, and re-saving drops EXIF data
 
+## Recognize text (OCR)
+
+Click **OCR** in the toolbar (or press Ctrl+Shift+T, or use the right-click menu), then drag an area of the open picture. The text in it is copied to the clipboard and a short preview is shown. Esc cancels.
+
+- Uses the text recognizer that ships with Windows, so it works offline. It reads with every OCR language installed among Traditional Chinese, Simplified Chinese, English, Japanese and Korean, and keeps the fullest result
+- Windows installs OCR for your display languages only. For another language, add it in **Settings → Time & language → Language & region**
+- If the picture has a View rotation it is flattened first, so the area is chosen in the Picture's own pixels (Ctrl+Z undoes it). Annotations and Pasted layers are not read, only the Picture underneath
+
 ## Keyboard shortcuts
 
 | Action | Keys |
@@ -91,6 +101,7 @@ Editing changes the picture's pixels, so it flattens any annotations and the vie
 | Rotate view left / right | Ctrl+[ / Ctrl+] |
 | Delete the selected annotation (otherwise the file) | Delete |
 | Crop | Ctrl+K |
+| Recognize text (OCR) | Ctrl+Shift+T |
 | Save / Save a copy | Ctrl+S / Ctrl+Shift+S |
 | Turn off tool / deselect | Esc |
 
@@ -118,6 +129,7 @@ Annotations stay editable until the picture is flattened (by an edit below, or w
 ## Known limits
 
 - PDF shows the first page only (as on macOS)
+- Text recognition has been checked against the Windows API's documented behavior only; it hasn't been run on a Windows PC yet, and Windows has no language detection, so mixed-language text is read with each installed language and the fullest result wins
 - Camera RAW decoding comes from Magick.NET's LibRaw and hasn't been tried against real RAW files yet
 - Transparent areas (from Rotate or Expand canvas) become white when saved as JPEG; save as PNG to keep them
 - Saving re-encodes, so EXIF data is dropped; JPEG is written at quality 92

@@ -44,7 +44,7 @@ public sealed class AboutWindow : Window
         root.Children.Add(header);
         root.Children.Add(new TextBlock
         {
-            Text = "A small picture viewer with light annotation and editing.",
+            Text = "A small picture viewer with light annotation, editing and text recognition (OCR).",
             TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 18, 0, 0),
         });
         if (hotKey != null)

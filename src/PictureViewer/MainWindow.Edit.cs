@@ -22,8 +22,10 @@ public partial class MainWindow
     {
         View.Layer.CropModeChanged += (_, _) =>
         {
-            CropButton.IsChecked = View.Layer.CropMode;
-            CropOptions.Visibility = View.Layer.CropMode ? Visibility.Visible : Visibility.Collapsed;
+            bool cropping = View.Layer.CropMode && !View.Layer.OcrMode;
+            CropButton.IsChecked = cropping;
+            OcrButton.IsChecked = View.Layer.OcrMode;
+            CropOptions.Visibility = cropping ? Visibility.Visible : Visibility.Collapsed;
         };
     }
 

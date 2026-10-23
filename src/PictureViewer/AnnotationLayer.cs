@@ -348,7 +348,9 @@ public sealed partial class AnnotationLayer : FrameworkElement
         _active = false;
         _drag = Drag.None;
         _dragStarted = false;
+        bool drewCropArea = _cropDrag == CropDrag.New;
         _cropDrag = CropDrag.None;
+        if (drewCropArea) RaiseOcrAreaChosen();
 
         if (_drawPoints.Count >= 2 && _tool != AnnotationTool.None)
         {

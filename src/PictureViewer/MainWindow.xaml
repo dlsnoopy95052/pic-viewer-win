@@ -29,6 +29,9 @@
                     <Button x:Name="CopyButton" Style="{StaticResource ToolButton}" Content="&#xE8C8;" ToolTip="Copy picture (Ctrl+C)" Click="OnCopyClick"/>
                     <Button x:Name="PrintButton" Style="{StaticResource ToolButton}" Content="&#xE749;" ToolTip="Print (Ctrl+P)" Click="OnPrintClick"/>
                     <Button x:Name="PasteButton" Style="{StaticResource ToolButton}" Content="&#xE77F;" ToolTip="Paste picture (Ctrl+V)" Click="OnPasteClick"/>
+                    <ToggleButton x:Name="OcrButton" Style="{StaticResource ToolToggle}" Width="40" ToolTip="Recognize text: drag an area of the picture and its text is copied (Ctrl+Shift+T)" Click="OnOcrClick">
+                        <TextBlock Text="OCR" FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="12"/>
+                    </ToggleButton>
                     <Button x:Name="RenameButton" Style="{StaticResource ToolButton}" Content="&#xE70F;" ToolTip="Rename (F2)" Click="OnRenameClick"/>
                     <Button x:Name="DeleteButton" Style="{StaticResource ToolButton}" Content="&#xE74D;" ToolTip="Move to Recycle Bin (Delete)" Click="OnDeleteClick"/>
                     <Rectangle Width="1" Margin="8,4" Fill="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"/>
@@ -165,6 +168,7 @@
                         <MenuItem Header="Open…" InputGestureText="Ctrl+O" Click="OnOpenClick"/>
                         <Separator/>
                         <MenuItem Header="Copy" InputGestureText="Ctrl+C" Click="OnCopyClick"/>
+                        <MenuItem Header="Recognize text (OCR)" InputGestureText="Ctrl+Shift+T" Click="OnOcrClick"/>
                         <MenuItem Header="Print…" InputGestureText="Ctrl+P" Click="OnPrintClick"/>
                         <MenuItem Header="Rename…" InputGestureText="F2" Click="OnRenameClick"/>
                         <MenuItem Header="Move to Recycle Bin" InputGestureText="Del" Click="OnDeleteClick"/>
