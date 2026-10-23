@@ -14,6 +14,7 @@
             <DockPanel LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                     <Button Style="{StaticResource ToolButton}" Content="&#xE8E5;" ToolTip="Open (Ctrl+O)" Click="OnOpenClick"/>
+                    <Button x:Name="CloseButton" Style="{StaticResource ToolButton}" Content="&#xE711;" ToolTip="Close picture (Ctrl+W): empty the viewer, so the next capture opens on its own" Click="OnCloseClick"/>
                     <Button x:Name="PrevButton" Style="{StaticResource ToolButton}" Content="&#xE76B;" ToolTip="Previous (←)" Click="OnPrevClick"/>
                     <Button x:Name="NextButton" Style="{StaticResource ToolButton}" Content="&#xE76C;" ToolTip="Next (→)" Click="OnNextClick"/>
                     <Rectangle Width="1" Margin="8,4" Fill="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"/>
@@ -191,7 +192,7 @@
 
             <Border x:Name="Toast" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Bottom"
                     Margin="0,0,0,28" Padding="16,9" CornerRadius="8" Background="#E0202020" IsHitTestVisible="False">
-                <TextBlock x:Name="ToastText" Foreground="White" FontSize="14"/>
+                <TextBlock x:Name="ToastText" Foreground="White" FontSize="14" TextWrapping="Wrap" MaxWidth="720"/>
             </Border>
 
             <Button x:Name="PrevOverlay" Style="{StaticResource OverlayArrow}" Content="&#xE76B;"

@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 
     BitmapSource? _current;
     int _loadTicket;        // newest load wins; stale ones are dropped
+    const string EmptyHint = "Drop a picture or folder here, or press Ctrl+O";
     int _infoTicket;
     bool _syncingStrip;     // true while code (not the user) changes the strip selection
     bool _stripDirty;       // folder changed while the strip was hidden
@@ -62,6 +63,27 @@ public partial class MainWindow : Window
         }
         RebuildStrip();
         _ = ShowCurrentAsync();
+    }
+
+    void OnCloseClick(object sender, RoutedEventArgs e) => CloseCurrent();
+
+    /// <summary>
+    /// Empties the viewer. While a Picture is open a Capture waits to be pasted onto it; with nothing open it opens
+    /// by itself, which is what closing is for.
+    /// </summary>
+    void CloseCurrent()
+    {
+        if (_folder.Current is null || !ConfirmDiscard()) return;
+        _loadTicket++; // drop a load that is still in flight
+        View.Layer.CropMode = false;
+        ResetEditing();
+        _current = null;
+        _folder.Clear();
+        View.SetImage(null);
+        EmptyText.Text = EmptyHint;
+        RebuildStrip();
+        UpdateUi();
+        RefreshInfoPanel();
     }
 
     async Task ShowCurrentAsync()
@@ -133,7 +155,7 @@ public partial class MainWindow : Window
             b.IsEnabled = hasImage;
         AnnotBar.IsEnabled = hasImage;
         UndoButton.IsEnabled = _undo.Count > 0;
-        RenameButton.IsEnabled = DeleteButton.IsEnabled = hasFile;
+        RenameButton.IsEnabled = DeleteButton.IsEnabled = CloseButton.IsEnabled = hasFile;
 
         if (_folder.Files.Count < 2) StopSlideshow();
         SlideshowButton.IsEnabled = _folder.Files.Count > 1;
@@ -485,7 +507,7 @@ public partial class MainWindow : Window
         bool hadPicture = _folder.Current != null;
         if (copyToClipboard && PutOnClipboard(capture) && hadPicture)
         {
-            ShowToast("Capture copied — press Ctrl+V to paste");
+            ShowToast("Capture copied. Ctrl+V pastes it onto this picture; to edit it on its own, close this picture (Ctrl+W) and press Ctrl+V.");
             return;
         }
 
@@ -542,6 +564,7 @@ public partial class MainWindow : Window
         switch (e.Key)
         {
             case Key.O when ctrl: OpenDialog(); break;
+            case Key.W when ctrl: CloseCurrent(); break;
             case Key.C when ctrl: CopyImage(); break;
             case Key.I when ctrl: SetInfoPanel(InfoPanel.Visibility != Visibility.Visible); break;
             case Key.T when ctrl: SetThumbnails(Strip.Visibility != Visibility.Visible); break;

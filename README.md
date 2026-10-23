@@ -50,7 +50,7 @@ Terminology is shared with the macOS app; see [GLOSSARY.md](GLOSSARY.md).
 Picture Viewer lives in the system tray. Closing the window only hides it; use **Quit** in the tray menu to exit.
 
 - Capture a screen area with the global hot key, **Ctrl+Alt+4** by default (works while another app is in front; no permission prompt). Change it with **Set Capture Hot Key…** in the tray menu: press the combination you want. It needs Ctrl, Alt, Shift or Win with the key (Print Screen works alone), and is saved in `%APPDATA%\PictureViewer\settings.json` Drag the area, Esc or right-click cancels. Every screen is frozen first, so you get exactly what you saw
-- The capture is copied to the clipboard (toggle in the tray menu). If a picture is already open it stays put and you can paste the capture onto it with Ctrl+V; otherwise the capture opens to annotate and edit
+- The capture is copied to the clipboard (toggle in the tray menu). If a picture is already open it stays put and you can paste the capture onto it with Ctrl+V; otherwise the capture opens to annotate and edit. To edit a capture on its own, **close** the open picture first (the ✕ button or Ctrl+W), or close it and press Ctrl+V to open the copied capture
 - Tray menu: Capture Screen Area, Show Picture Viewer, Open…, Set Capture Hot Key…, Copy Captures to Clipboard, **Open at Login**, About, Quit
 - Open at Login starts straight into the tray (no window). Starting the app by hand shows the window
 - Only one copy runs; opening a picture while it's running hands the file to the running one
@@ -73,6 +73,7 @@ Editing changes the picture's pixels, so it flattens any annotations and the vie
 | Action | Keys |
 |---|---|
 | Open | Ctrl+O |
+| Close picture | Ctrl+W |
 | Previous / next picture | ← / → (or PgUp / PgDn) |
 | First / last picture | Home / End |
 | Fit to window / actual size | 0 / 1 |
