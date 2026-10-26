@@ -14,7 +14,6 @@
             <DockPanel LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
                     <Button Style="{StaticResource ToolButton}" Content="&#xE8E5;" ToolTip="Open (Ctrl+O)" Click="OnOpenClick"/>
-                    <Button x:Name="CloseButton" Style="{StaticResource ToolButton}" Content="&#xE711;" ToolTip="Close picture (Ctrl+W): empty the viewer, so the next capture opens on its own" Click="OnCloseClick"/>
                     <Button x:Name="PrevButton" Style="{StaticResource ToolButton}" Content="&#xE76B;" ToolTip="Previous (←)" Click="OnPrevClick"/>
                     <Button x:Name="NextButton" Style="{StaticResource ToolButton}" Content="&#xE76C;" ToolTip="Next (→)" Click="OnNextClick"/>
                     <Rectangle Width="1" Margin="8,4" Fill="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"/>
@@ -34,6 +33,7 @@
                     </ToggleButton>
                     <Button x:Name="RenameButton" Style="{StaticResource ToolButton}" Content="&#xE70F;" ToolTip="Rename (F2)" Click="OnRenameClick"/>
                     <Button x:Name="DeleteButton" Style="{StaticResource ToolButton}" Content="&#xE74D;" ToolTip="Move to Recycle Bin (Delete)" Click="OnDeleteClick"/>
+                    <Button x:Name="CloseButton" Style="{StaticResource ToolButton}" Content="&#xE711;" ToolTip="Close picture (Ctrl+W): empty the viewer, so the next capture opens on its own" Click="OnCloseClick"/>
                     <Rectangle Width="1" Margin="8,4" Fill="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}"/>
                     <Button x:Name="ZoomOutButton" Style="{StaticResource ToolButton}" Content="&#xE71F;" ToolTip="Zoom out (-)" Click="OnZoomOutClick"/>
                     <Button x:Name="ZoomInButton" Style="{StaticResource ToolButton}" Content="&#xE8A3;" ToolTip="Zoom in (+)" Click="OnZoomInClick"/>
